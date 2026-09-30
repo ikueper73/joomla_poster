@@ -5,9 +5,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class FakeTokenStore implements TokenStore {
   String? token;
+  bool broken = false;
 
   @override
-  Future<String?> read() async => token;
+  Future<String?> read() async {
+    if (broken) throw const TokenStoreException('No keyring');
+    return token;
+  }
 
   @override
   Future<void> write(String token) async => this.token = token;
@@ -54,6 +58,16 @@ void main() {
       expect(settings.mediaAdapter, 'local-images');
       expect(store.hasToken, isTrue);
       expect(store.isComplete, isTrue);
+    });
+
+    test('an unavailable keyring does not break loading', () async {
+      tokens.broken = true;
+      final store = await createStore({
+        'site_url': 'https://example.org',
+        'category_id': 12,
+      });
+      expect(store.settings!.categoryId, 12);
+      expect(store.hasToken, isFalse);
     });
 
     test('is not complete without media adapter', () async {

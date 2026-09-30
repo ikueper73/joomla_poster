@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const JoomlaPosterApp());
+import 'services/settings_store.dart';
+import 'ui/compose_screen.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final store = SettingsStore(
+    prefs: await SharedPreferences.getInstance(),
+    tokens: const SecureTokenStore(),
+  );
+  await store.load();
+  runApp(JoomlaPosterApp(store: store));
 }
 
 class JoomlaPosterApp extends StatelessWidget {
-  const JoomlaPosterApp({super.key});
+  const JoomlaPosterApp({super.key, required this.store});
+
+  final SettingsStore store;
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +26,7 @@ class JoomlaPosterApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
       ),
-      home: const Scaffold(body: Center(child: Text('Joomla Poster'))),
+      home: ComposeScreen(store: store),
     );
   }
 }

@@ -89,8 +89,14 @@ class SettingsStore extends ChangeNotifier {
             ),
             mediaAdapter: _prefs.getString(_mediaAdapterKey),
           );
-    final token = await _tokens.read();
-    _hasToken = token != null && token.isNotEmpty;
+    try {
+      final token = await _tokens.read();
+      _hasToken = token != null && token.isNotEmpty;
+    } on TokenStoreException {
+      // Keyring unavailable: start anyway. Saving a token in the settings
+      // screen will then show the readable error.
+      _hasToken = false;
+    }
     notifyListeners();
   }
 
