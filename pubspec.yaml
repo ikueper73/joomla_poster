@@ -1,5 +1,5 @@
 name: joomla_poster
-description: "A new Flutter project."
+description: "Posts articles with images to one category of a Joomla 5 site."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -28,12 +28,13 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  file_picker: ^13.1.0
   flutter:
     sdk: flutter
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
+  flutter_secure_storage: ^11.2.0
+  http: ^1.6.0
+  image: ^4.10.1
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:
