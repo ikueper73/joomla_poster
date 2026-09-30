@@ -19,18 +19,22 @@ JoomlaClient clientFor(MockClientHandler handler) => JoomlaClient(
 http.Response jsonResponse(Object body, [int status = 200]) =>
     http.Response(jsonEncode(body), status);
 
-TypeMatcher<JoomlaApiException> apiError({
+/// Matches a [JoomlaApiException] of [kind]. The detail must never contain
+/// the token; [detail] / [excludes] check it further.
+TypeMatcher<JoomlaApiException> apiError(
+  ApiErrorKind kind, {
   int? status,
-  String? mentions,
+  String? detail,
   String? excludes,
 }) => isA<JoomlaApiException>()
+    .having((e) => e.kind, 'kind', kind)
     .having((e) => e.statusCode, 'statusCode', status)
     .having(
-      (e) => e.message,
-      'message',
+      (e) => e.detail ?? '',
+      'detail',
       allOf([
         isNot(contains(token)),
-        mentions == null ? anything : contains(mentions),
+        detail == null ? anything : contains(detail),
         excludes == null ? anything : isNot(contains(excludes)),
       ]),
     );
@@ -73,7 +77,9 @@ void main() {
       );
       await expectLater(
         client.verifyCategory(12),
-        throwsA(apiError(status: 401, mentions: 'Check the API token')),
+        throwsA(
+          apiError(ApiErrorKind.unauthorized, status: 401, detail: 'Forbidden'),
+        ),
       );
     });
 
@@ -89,9 +95,10 @@ void main() {
         client.verifyCategory(99),
         throwsA(
           apiError(
+            ApiErrorKind.notFound,
             status: 404,
-            mentions: 'category ID',
-          ).having((e) => e.message, 'message', contains('Resource not found')),
+            detail: 'Resource not found',
+          ),
         ),
       );
     });
@@ -108,8 +115,9 @@ void main() {
         client.verifyCategory(12),
         throwsA(
           apiError(
+            ApiErrorKind.requestFailed,
             status: 400,
-            mentions: 'Bad token *** given',
+            detail: 'Bad token *** given',
             excludes: '<b>',
           ),
         ),
@@ -128,15 +136,15 @@ void main() {
         client.verifyCategory(12),
         throwsA(
           isA<JoomlaApiException>().having(
-            (e) => e.message.length,
-            'message length',
+            (e) => e.detail!.length,
+            'detail length',
             lessThan(400),
           ),
         ),
       );
     });
 
-    test('HTML error page gives a generic message', () async {
+    test('HTML error page gives server error without detail', () async {
       final client = clientFor(
         (_) async =>
             http.Response('<html><body>Fatal error</body></html>', 500),
@@ -144,7 +152,10 @@ void main() {
       await expectLater(
         client.verifyCategory(12),
         throwsA(
-          apiError(status: 500, mentions: 'server error', excludes: '<html>'),
+          apiError(
+            ApiErrorKind.serverError,
+            status: 500,
+          ).having((e) => e.detail, 'detail', isNull),
         ),
       );
     });
@@ -155,7 +166,7 @@ void main() {
       );
       await expectLater(
         client.verifyCategory(12),
-        throwsA(apiError(status: 200, mentions: 'site URL')),
+        throwsA(apiError(ApiErrorKind.unexpectedResponse, status: 200)),
       );
     });
 
@@ -165,7 +176,7 @@ void main() {
       );
       await expectLater(
         client.verifyCategory(12),
-        throwsA(apiError(mentions: 'Could not reach the site')),
+        throwsA(apiError(ApiErrorKind.network, detail: 'Connection refused')),
       );
     });
 
@@ -181,7 +192,7 @@ void main() {
       );
       await expectLater(
         client.verifyCategory(12),
-        throwsA(apiError(mentions: 'did not respond')),
+        throwsA(apiError(ApiErrorKind.timeout)),
       );
     });
   });
@@ -233,7 +244,7 @@ void main() {
       final client = clientFor((_) async => jsonResponse({'data': []}));
       await expectLater(
         client.fetchMediaAdapter(),
-        throwsA(apiError(mentions: 'Web Services - Media')),
+        throwsA(apiError(ApiErrorKind.noMediaAdapters)),
       );
     });
 
@@ -241,7 +252,7 @@ void main() {
       final client = clientFor((_) async => jsonResponse({}, 403));
       await expectLater(
         client.fetchMediaAdapter(),
-        throwsA(apiError(status: 403, mentions: 'Permission denied')),
+        throwsA(apiError(ApiErrorKind.forbidden, status: 403)),
       );
     });
   });
@@ -278,7 +289,7 @@ void main() {
       final client = clientFor((_) async => http.Response('', 413));
       await expectLater(
         client.uploadImage('local-images', image),
-        throwsA(apiError(status: 413, mentions: 'too large')),
+        throwsA(apiError(ApiErrorKind.tooLarge, status: 413)),
       );
     });
 
@@ -286,7 +297,7 @@ void main() {
       final client = clientFor((_) async => jsonResponse({}, 409));
       await expectLater(
         client.uploadImage('local-images', image),
-        throwsA(apiError(status: 409, mentions: 'already exists')),
+        throwsA(apiError(ApiErrorKind.conflict, status: 409)),
       );
     });
   });
@@ -380,7 +391,13 @@ void main() {
           categoryId: 12,
           state: ArticleState.unpublished,
         ),
-        throwsA(apiError(status: 400, mentions: 'Please enter a title')),
+        throwsA(
+          apiError(
+            ApiErrorKind.requestFailed,
+            status: 400,
+            detail: 'Please enter a title',
+          ),
+        ),
       );
     });
   });
@@ -529,14 +546,18 @@ void main() {
           buildArticleHtml: fakeHtml,
         ),
         throwsA(
-          apiError(status: 400, mentions: 'Image 2 of 3').having(
-            (e) => e.message,
-            'message',
-            allOf(
-              contains('no article was created'),
-              contains('File type not allowed'),
-            ),
-          ),
+          isA<ImageUploadException>()
+              .having((e) => e.number, 'number', 2)
+              .having((e) => e.total, 'total', 3)
+              .having(
+                (e) => e.cause,
+                'cause',
+                apiError(
+                  ApiErrorKind.requestFailed,
+                  status: 400,
+                  detail: 'File type not allowed',
+                ),
+              ),
         ),
       );
       expect(requests, hasLength(2));

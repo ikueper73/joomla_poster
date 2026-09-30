@@ -7,14 +7,15 @@ images. Keep it simple: this is a single-purpose tool, not a CMS client.
 ## Scope
 
 In scope:
-- Settings screen: site URL, API token, target category ID
+- Settings screen: UI language, site URL, API token, target category ID
 - Compose screen: title, body text, intro image, additional inline images
 - Upload images, then create the article referencing them
 - Clear success/error feedback
 
 Out of scope (do not build unless asked):
 - Editing, listing, or deleting existing articles
-- Category selection, tags, custom fields, multilingual
+- Category selection, tags, custom fields, multilingual Joomla content
+  (articles are always posted with `language: "*"`)
 - Offline drafts, sync, user accounts, analytics, telemetry, Firebase
 
 ## Tech stack
@@ -28,6 +29,7 @@ Out of scope (do not build unless asked):
   - `shared_preferences` – non-secret settings (URL, category ID)
   - `file_picker` – image selection on all platforms
   - `image` – resize/compress before upload
+  - `flutter_localizations` (SDK) + `intl` – UI translations via gen-l10n
 
 ## Joomla Web Services API
 
@@ -107,6 +109,27 @@ The user places inline images with markers `[img1]`, `[img2]`, … in the body
   settings screen help text.
 - Surface API error details from the JSON:API `errors` array, sanitized.
 
+## Localization
+
+- UI languages: English (`en`, template) and German (`de`). ARB files live
+  in `lib/l10n/`; `flutter gen-l10n` (runs automatically on `pub get` /
+  `run` / `test`) generates `lib/l10n/app_localizations*.dart`.
+- Every user-visible string goes into both ARB files. No hard-coded UI text,
+  except language names ("English", "Deutsch"), which stay in their own
+  language.
+- The language setting (`system`, `en`, `de`) applies immediately and is
+  stored in shared preferences. `system` follows the OS language; any other
+  OS language falls back to English (so `supportedLocales` in `main.dart`
+  lists English first).
+- Non-UI code (`lib/api`, `lib/services`) never builds user-facing
+  sentences. It throws typed errors (`JoomlaApiException` with
+  `ApiErrorKind`, `ImageUploadException`, `ImageProcessingException`,
+  `TokenStoreException`, `SiteUrlError`); `lib/ui/error_text.dart` turns
+  them into translated text. Server-provided details stay in the site's
+  language.
+- German texts use the neutral infinitive style ("Bitte den Titel
+  eingeben"), no "du"/"Sie".
+
 ## Project structure
 
 ```
@@ -119,7 +142,12 @@ lib/
   services/settings_store.dart
   ui/settings_screen.dart
   ui/compose_screen.dart
+  ui/error_text.dart         # typed errors → translated messages
+  ui/status_message.dart     # success/error line below a form
+  l10n/app_en.arb            # English (template)
+  l10n/app_de.arb            # German
 test/
+  helpers.dart               # localizedApp() for widget tests
   app_test.dart
   api/joomla_client_test.dart   # uses MockClient from package:http/testing
   api/article_html_test.dart
@@ -128,6 +156,7 @@ test/
   services/settings_store_test.dart
   ui/settings_screen_test.dart  # widget tests with MockClient-based clients
   ui/compose_screen_test.dart   # fake image service + file picker
+  ui/error_text_test.dart
 ```
 
 UI screens take their dependencies (client factory, image service, file
@@ -145,4 +174,6 @@ picker) as constructor parameters so widget tests can inject fakes.
 - Test against a mocked HTTP client, never against the live site, unless
   explicitly asked.
 - Small, focused changes; explain any new dependency before adding it.
-- Keep UI text in English; keep the code readable over clever.
+- UI text via ARB files in English and German (see Localization); code,
+  comments and commit messages in English. Keep the code readable over
+  clever.

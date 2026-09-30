@@ -31,7 +31,8 @@ meant to replace the Joomla backend.
 
 ## Using the app
 
-1. On first start, click **Open settings**. Enter the site URL (`https://…`),
+1. On first start, click **Open settings**. The language (English, German or
+   the system language) can be changed there at any time. Enter the site URL (`https://…`),
    the token and the category ID. Choose whether articles are published
    immediately (default: off, so an editor reviews them first). Then click
    **Test connection and save**. Settings are only saved when the test

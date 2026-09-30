@@ -107,18 +107,59 @@ class ArticleDraft {
   final List<PendingImage> inlineImages;
 }
 
-/// An error from the Joomla API or the network. [message] is already
-/// sanitized and safe to show to the user; it never contains the token.
+/// What went wrong in an API call. The UI turns this into a translated
+/// message; the client itself produces no user-facing sentences.
+enum ApiErrorKind {
+  /// The site could not be reached (DNS, TLS, connection refused, …).
+  network,
+  timeout,
+
+  /// A 2xx response that is not the expected JSON (e.g. an HTML page).
+  unexpectedResponse,
+
+  /// `GET /media/adapters` returned no adapters.
+  noMediaAdapters,
+
+  unauthorized, // 401
+  forbidden, // 403
+  notFound, // 404
+  conflict, // 409, e.g. file already exists
+  tooLarge, // 413
+  serverError, // 5xx
+  requestFailed, // any other non-2xx status
+}
+
+/// An error from the Joomla API or the network. Never contains the token.
 class JoomlaApiException implements Exception {
-  const JoomlaApiException(this.message, {this.statusCode});
+  const JoomlaApiException(this.kind, {this.statusCode, this.detail});
 
-  final String message;
+  final ApiErrorKind kind;
 
-  /// HTTP status code, or null for network errors.
+  /// HTTP status code, or null for network errors and timeouts.
   final int? statusCode;
 
+  /// Sanitized extra information: the JSON:API `errors` from the server
+  /// (in the site's language) or the network error text. May be null.
+  final String? detail;
+
   @override
-  String toString() => statusCode == null
-      ? 'JoomlaApiException: $message'
-      : 'JoomlaApiException ($statusCode): $message';
+  String toString() =>
+      'JoomlaApiException(${kind.name}, status: $statusCode, detail: $detail)';
+}
+
+/// An image upload failed, so no article was created.
+class ImageUploadException implements Exception {
+  const ImageUploadException({
+    required this.number,
+    required this.total,
+    required this.cause,
+  });
+
+  /// 1-based number of the failed image and the number of images.
+  final int number;
+  final int total;
+  final JoomlaApiException cause;
+
+  @override
+  String toString() => 'ImageUploadException($number of $total): $cause';
 }

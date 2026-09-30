@@ -5,14 +5,26 @@ import 'package:image/image.dart' as img;
 
 import '../api/models.dart';
 
-/// Thrown when an image cannot be used. [message] is safe to show.
-class ImageProcessingException implements Exception {
-  const ImageProcessingException(this.message);
+enum ImageErrorKind {
+  /// Not jpg, jpeg, png or webp.
+  unsupportedType,
 
-  final String message;
+  /// Over [ImageService.maxInputBytes].
+  tooLarge,
+
+  /// Could not be decoded.
+  unreadable,
+}
+
+/// Thrown when an image cannot be used. The UI translates [kind].
+class ImageProcessingException implements Exception {
+  const ImageProcessingException(this.kind, this.fileName);
+
+  final ImageErrorKind kind;
+  final String fileName;
 
   @override
-  String toString() => 'ImageProcessingException: $message';
+  String toString() => 'ImageProcessingException(${kind.name}, $fileName)';
 }
 
 /// Prepares picked images for upload: resize, re-encode as JPEG, strip
@@ -44,19 +56,14 @@ class ImageService {
     String alt = '',
   }) async {
     if (!isSupported(fileName)) {
-      throw ImageProcessingException(
-        '"$fileName" is not supported. '
-        'Please use JPG, PNG or WebP images.',
-      );
+      throw ImageProcessingException(ImageErrorKind.unsupportedType, fileName);
     }
     if (bytes.length > maxInputBytes) {
-      throw ImageProcessingException('"$fileName" is too large (over 40 MB).');
+      throw ImageProcessingException(ImageErrorKind.tooLarge, fileName);
     }
     final jpeg = await Isolate.run(() => processBytes(bytes));
     if (jpeg == null) {
-      throw ImageProcessingException(
-        '"$fileName" could not be read. Is it a valid image?',
-      );
+      throw ImageProcessingException(ImageErrorKind.unreadable, fileName);
     }
     return PendingImage(relativePath: relativePath, bytes: jpeg, alt: alt);
   }

@@ -10,6 +10,8 @@ import 'package:joomla_poster/services/settings_store.dart';
 import 'package:joomla_poster/ui/settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers.dart';
+
 class FakeTokenStore implements TokenStore {
   String? token;
 
@@ -74,13 +76,12 @@ void main() {
   Future<void> pumpScreen(
     WidgetTester tester, {
     JoomlaClientFactory? factory,
+    Locale locale = const Locale('en'),
   }) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: SettingsScreen(
-          store: store,
-          clientFactory: factory ?? fakeSite(),
-        ),
+      localizedApp(
+        SettingsScreen(store: store, clientFactory: factory ?? fakeSite()),
+        locale: locale,
       ),
     );
   }
@@ -187,5 +188,57 @@ void main() {
     await pumpScreen(tester);
     await tester.ensureVisible(find.textContaining('Super User'));
     expect(find.textContaining('Never use a Super User token'), findsOne);
+  });
+
+  testWidgets('language selector saves the choice immediately', (tester) async {
+    await pumpScreen(tester);
+    await tester.tap(find.text('System language'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Deutsch').last);
+    await tester.pumpAndSettle();
+
+    expect(store.languageCode, 'de');
+    expect(requests, isEmpty);
+    expect(store.settings, isNull);
+  });
+
+  testWidgets('German UI shows German labels and errors', (tester) async {
+    await pumpScreen(
+      tester,
+      factory: fakeSite(status: 401),
+      locale: const Locale('de'),
+    );
+    expect(find.text('Einstellungen'), findsOneWidget);
+    expect(find.text('Website-URL'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Website-URL'),
+      'http://example.org',
+    );
+    await tester.ensureVisible(find.text('Verbindung testen und speichern'));
+    await tester.tap(find.text('Verbindung testen und speichern'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Nur https://-URLs'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Website-URL'),
+      'https://example.org',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'API-Token'),
+      'abc',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Kategorie-ID'),
+      '12',
+    );
+    await tester.ensureVisible(find.text('Verbindung testen und speichern'));
+    await tester.tap(find.text('Verbindung testen und speichern'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Anmeldung fehlgeschlagen. Bitte den API-Token'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Meldung des Servers: Forbidden'), findsOne);
   });
 }

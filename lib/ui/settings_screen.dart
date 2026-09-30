@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 
 import '../api/joomla_client.dart';
 import '../api/models.dart';
+import '../l10n/app_localizations.dart';
 import '../services/settings_store.dart';
+import 'error_text.dart';
+import 'status_message.dart';
 
 /// Creates an API client. Injectable so tests can use a mocked HTTP client.
 typedef JoomlaClientFactory = JoomlaClient Function(
@@ -14,9 +17,10 @@ typedef JoomlaClientFactory = JoomlaClient Function(
 JoomlaClient defaultClientFactory(String apiBaseUrl, String token) =>
     JoomlaClient(apiBaseUrl: apiBaseUrl, token: token);
 
-/// Edits site URL, token, category and publish state. Settings are only
-/// saved after a successful connection test, which also stores the media
-/// adapter needed for uploads.
+/// Edits language, site URL, token, category and publish state. The
+/// language applies immediately; the connection settings are only saved
+/// after a successful connection test, which also stores the media adapter
+/// needed for uploads.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
     super.key,
@@ -39,8 +43,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late bool _publishImmediately;
 
   bool _busy = false;
-  String? _successMessage;
-  String? _errorMessage;
+
+  // Built on demand, so they follow a language switch.
+  String Function(AppLocalizations l10n)? _successMessage;
+  String Function(AppLocalizations l10n)? _errorMessage;
 
   @override
   void initState() {
@@ -91,13 +97,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         token: enteredToken.isEmpty ? null : enteredToken,
       );
       _token.clear();
-      _successMessage = categoryTitle.isEmpty
-          ? 'Connection OK. Settings saved.'
-          : 'Connection OK: category "$categoryTitle". Settings saved.';
+      _successMessage = (l10n) => categoryTitle.isEmpty
+          ? l10n.connectionOk
+          : l10n.connectionOkCategory(categoryTitle);
     } on JoomlaApiException catch (e) {
-      _errorMessage = e.message;
+      _errorMessage = (l10n) => errorText(l10n, e);
     } on TokenStoreException catch (e) {
-      _errorMessage = e.message;
+      _errorMessage = (l10n) => errorText(l10n, e);
     } finally {
       client?.close();
       if (mounted) setState(() => _busy = false);
@@ -106,11 +112,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final hasToken = widget.store.hasToken;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
@@ -123,26 +129,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _LanguageSelector(store: widget.store),
+                  const SizedBox(height: 24),
                   TextFormField(
                     controller: _siteUrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Site URL',
+                    decoration: InputDecoration(
+                      labelText: l10n.siteUrlLabel,
                       hintText: 'https://example.org',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.url,
                     autocorrect: false,
                     validator: (value) =>
-                        SettingsStore.validateSiteUrl(value ?? ''),
+                        switch (SettingsStore.validateSiteUrl(value ?? '')) {
+                          final error? => siteUrlErrorText(l10n, error),
+                          null => null,
+                        },
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _token,
                     decoration: InputDecoration(
-                      labelText: 'API token',
-                      helperText: hasToken
-                          ? 'A token is saved. Leave empty to keep it.'
-                          : null,
+                      labelText: l10n.tokenLabel,
+                      helperText: hasToken ? l10n.tokenSavedHelper : null,
+                      helperMaxLines: 2,
                       border: const OutlineInputBorder(),
                     ),
                     obscureText: true,
@@ -150,34 +160,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     enableSuggestions: false,
                     validator: (value) =>
                         !hasToken && (value ?? '').trim().isEmpty
-                        ? 'Please enter the API token.'
+                        ? l10n.tokenRequired
                         : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _categoryId,
-                    decoration: const InputDecoration(
-                      labelText: 'Category ID',
-                      helperText: 'Shown in the ID column of the category list',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.categoryIdLabel,
+                      helperText: l10n.categoryIdHelper,
+                      border: const OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: (value) {
                       final id = int.tryParse((value ?? '').trim());
                       return id == null || id < 1
-                          ? 'Please enter the numeric category ID.'
+                          ? l10n.categoryIdRequired
                           : null;
                     },
                   ),
                   const SizedBox(height: 8),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Publish immediately'),
-                    subtitle: const Text(
-                      'When off, articles are saved unpublished so an editor '
-                      'can review them on the site.',
-                    ),
+                    title: Text(l10n.publishImmediately),
+                    subtitle: Text(l10n.publishImmediatelyHint),
                     value: _publishImmediately,
                     onChanged: _busy
                         ? null
@@ -193,20 +200,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.wifi_tethering),
-                    label: const Text('Test connection and save'),
+                    label: Text(l10n.testAndSave),
                   ),
-                  if (_successMessage != null)
-                    _StatusMessage(
-                      icon: Icons.check_circle,
-                      color: theme.colorScheme.primary,
-                      text: _successMessage!,
-                    ),
-                  if (_errorMessage != null)
-                    _StatusMessage(
-                      icon: Icons.error,
-                      color: theme.colorScheme.error,
-                      text: _errorMessage!,
-                    ),
+                  if (_successMessage case final message?)
+                    StatusMessage.success(message(l10n)),
+                  if (_errorMessage case final message?)
+                    StatusMessage.error(message(l10n)),
                   const SizedBox(height: 24),
                   const _HelpCard(),
                 ],
@@ -219,29 +218,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-class _StatusMessage extends StatelessWidget {
-  const _StatusMessage({
-    required this.icon,
-    required this.color,
-    required this.text,
-  });
+/// Language choice; applies immediately, independent of the connection test.
+class _LanguageSelector extends StatelessWidget {
+  const _LanguageSelector({required this.store});
 
-  final IconData icon;
-  final Color color;
-  final String text;
+  final SettingsStore store;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 8),
-          Expanded(child: SelectableText(text)),
-        ],
+    final l10n = AppLocalizations.of(context);
+    return DropdownButtonFormField<String?>(
+      initialValue: store.languageCode,
+      decoration: InputDecoration(
+        labelText: l10n.languageLabel,
+        border: const OutlineInputBorder(),
       ),
+      items: [
+        DropdownMenuItem(value: null, child: Text(l10n.languageSystem)),
+        // Language names are shown in their own language on purpose.
+        const DropdownMenuItem(value: 'en', child: Text('English')),
+        const DropdownMenuItem(value: 'de', child: Text('Deutsch')),
+      ],
+      onChanged: store.setLanguage,
     );
   }
 }
@@ -251,26 +249,19 @@ class _HelpCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Setting up Joomla', style: textTheme.titleMedium),
-            const SizedBox(height: 8),
-            const Text(
-              '• Create a dedicated Joomla user for this app with only the '
-              'rights to create articles in this category and upload media. '
-              'Never use a Super User token: anyone who gets the token can '
-              'do everything that user can.\n'
-              '• Get the token in that user\'s profile, tab "Joomla API '
-              'Token".\n'
-              '• These plugins must be enabled: "API Authentication - Web '
-              'Services Joomla Token", "User - Joomla API Token", '
-              '"Web Services - Content" and "Web Services - Media".',
+            Text(
+              l10n.helpTitle,
+              style: Theme.of(context).textTheme.titleMedium,
             ),
+            const SizedBox(height: 8),
+            Text(l10n.helpText),
           ],
         ),
       ),

@@ -115,7 +115,13 @@ void main() {
           bytes: Uint8List(10),
           relativePath: 'x.jpg',
         ),
-        throwsA(isA<ImageProcessingException>()),
+        throwsA(
+          isA<ImageProcessingException>().having(
+            (e) => e.kind,
+            'kind',
+            ImageErrorKind.unsupportedType,
+          ),
+        ),
       );
     });
 
@@ -127,11 +133,9 @@ void main() {
           relativePath: 'x.jpg',
         ),
         throwsA(
-          isA<ImageProcessingException>().having(
-            (e) => e.message,
-            'message',
-            contains('broken.jpg'),
-          ),
+          isA<ImageProcessingException>()
+              .having((e) => e.kind, 'kind', ImageErrorKind.unreadable)
+              .having((e) => e.fileName, 'fileName', 'broken.jpg'),
         ),
       );
     });

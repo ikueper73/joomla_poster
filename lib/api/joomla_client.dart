@@ -24,7 +24,7 @@ class JoomlaClient {
   final Duration timeout;
   final Duration uploadTimeout;
 
-  static const _maxMessageLength = 300;
+  static const _maxDetailLength = 300;
 
   /// Checks URL, token and category in one call. Returns the category title.
   Future<String> verifyCategory(int categoryId) async {
@@ -41,10 +41,7 @@ class JoomlaClient {
     final data = json['data'];
     final adapters = data is List ? data.whereType<Map>().toList() : <Map>[];
     if (adapters.isEmpty) {
-      throw const JoomlaApiException(
-        'The site reported no media adapters. '
-        'Is the "Web Services - Media" plugin enabled?',
-      );
+      throw const JoomlaApiException(ApiErrorKind.noMediaAdapters);
     }
     final preferred = adapters.firstWhere(
       (a) => _attributes(a)?['name'] == 'images',
@@ -52,7 +49,7 @@ class JoomlaClient {
     );
     final id = preferred['id'];
     if (id is! String || id.isEmpty) {
-      throw const JoomlaApiException('Unexpected media adapter response.');
+      throw const JoomlaApiException(ApiErrorKind.unexpectedResponse);
     }
     return id;
   }
@@ -95,7 +92,8 @@ class JoomlaClient {
   }
 
   /// Uploads all images of [draft] in order, then creates the article.
-  /// If any upload fails, stops and throws; the article is not created.
+  /// If any upload fails, stops and throws [ImageUploadException]; the
+  /// article is not created.
   ///
   /// [buildArticleHtml] turns the plain-text body plus the uploaded inline
   /// images into the article HTML. [onProgress] is called with the number
@@ -116,10 +114,10 @@ class JoomlaClient {
       try {
         uploaded.add(await uploadImage(adapter, image));
       } on JoomlaApiException catch (e) {
-        throw JoomlaApiException(
-          'Image ${uploaded.length + 1} of ${pending.length} could not be '
-          'uploaded, so no article was created. ${e.message}',
-          statusCode: e.statusCode,
+        throw ImageUploadException(
+          number: uploaded.length + 1,
+          total: pending.length,
+          cause: e,
         );
       }
       onProgress?.call(uploaded.length, pending.length);
@@ -177,12 +175,11 @@ class JoomlaClient {
     try {
       response = await request().timeout(timeout);
     } on TimeoutException {
-      throw const JoomlaApiException(
-        'The site did not respond in time. Please try again.',
-      );
+      throw const JoomlaApiException(ApiErrorKind.timeout);
     } on http.ClientException catch (e) {
       throw JoomlaApiException(
-        'Could not reach the site: ${_sanitize(e.message)}',
+        ApiErrorKind.network,
+        detail: _sanitize(e.message),
       );
     }
 
@@ -193,7 +190,7 @@ class JoomlaClient {
     final json = _tryDecode(response.body);
     if (json == null) {
       throw JoomlaApiException(
-        'Unexpected response from the site. Is the site URL correct?',
+        ApiErrorKind.unexpectedResponse,
         statusCode: response.statusCode,
       );
     }
@@ -202,18 +199,20 @@ class JoomlaClient {
 
   JoomlaApiException _errorFrom(http.Response response) {
     final status = response.statusCode;
-    final hint = switch (status) {
-      401 => 'Authentication failed. Check the API token.',
-      403 => 'Permission denied. The token user lacks the required rights.',
-      404 => 'Not found. Check the site URL and category ID.',
-      409 => 'A file with this name already exists on the server.',
-      413 => 'The file is too large for the server.',
-      >= 500 => 'The site reported a server error ($status).',
-      _ => 'Request failed ($status).',
+    final kind = switch (status) {
+      401 => ApiErrorKind.unauthorized,
+      403 => ApiErrorKind.forbidden,
+      404 => ApiErrorKind.notFound,
+      409 => ApiErrorKind.conflict,
+      413 => ApiErrorKind.tooLarge,
+      >= 500 => ApiErrorKind.serverError,
+      _ => ApiErrorKind.requestFailed,
     };
-    final detail = _apiErrorDetail(response.body);
-    final message = detail == null ? hint : '$hint Server said: $detail';
-    return JoomlaApiException(message, statusCode: status);
+    return JoomlaApiException(
+      kind,
+      statusCode: status,
+      detail: _apiErrorDetail(response.body),
+    );
   }
 
   /// Joins the JSON:API `errors[].title/detail` entries, sanitized.
@@ -242,9 +241,9 @@ class JoomlaClient {
     return _truncate(clean);
   }
 
-  String _truncate(String text) => text.length <= _maxMessageLength
+  String _truncate(String text) => text.length <= _maxDetailLength
       ? text
-      : '${text.substring(0, _maxMessageLength)}…';
+      : '${text.substring(0, _maxDetailLength)}…';
 
   static Map<String, dynamic>? _tryDecode(String body) {
     try {

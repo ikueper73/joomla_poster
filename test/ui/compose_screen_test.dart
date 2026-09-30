@@ -12,6 +12,8 @@ import 'package:joomla_poster/services/settings_store.dart';
 import 'package:joomla_poster/ui/compose_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers.dart';
+
 class FakeTokenStore implements TokenStore {
   String? token = 'abc';
 
@@ -34,7 +36,7 @@ class FakeImageService extends ImageService {
     String alt = '',
   }) async {
     if (!ImageService.isSupported(fileName)) {
-      throw ImageProcessingException('"$fileName" is not supported.');
+      throw ImageProcessingException(ImageErrorKind.unsupportedType, fileName);
     }
     return PendingImage(relativePath: relativePath, bytes: bytes, alt: alt);
   }
@@ -82,21 +84,27 @@ void main() {
     }),
   );
 
-  Future<List<PickedFile>> fakePicker({required bool multiple}) async =>
-      pickerResults.isEmpty ? [] : pickerResults.removeAt(0);
+  Future<List<PickedFile>> fakePicker({
+    required bool multiple,
+    required String dialogTitle,
+  }) async => pickerResults.isEmpty ? [] : pickerResults.removeAt(0);
 
-  Future<void> pumpScreen(WidgetTester tester) async {
+  Future<void> pumpScreen(
+    WidgetTester tester, {
+    Locale locale = const Locale('en'),
+  }) async {
     tester.view.physicalSize = const Size(1000, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      MaterialApp(
-        home: ComposeScreen(
+      localizedApp(
+        ComposeScreen(
           store: store,
           clientFactory: fakeClient,
           imageService: const FakeImageService(),
           pickImages: fakePicker,
         ),
+        locale: locale,
       ),
     );
   }
@@ -356,5 +364,64 @@ void main() {
     final article = jsonDecode(requests.single.body) as Map<String, dynamic>;
     expect(article['state'], 1);
     expect(find.textContaining('was published'), findsOne);
+  });
+
+  group('in German', () {
+    testWidgets('failed upload and unknown markers are reported in German', (
+      tester,
+    ) async {
+      failUploadNumber = 1;
+      pickerResults = [
+        [picked('a.jpg')],
+      ];
+      await pumpScreen(tester, locale: const Locale('de'));
+      expect(find.text('Neuer Beitrag'), findsOneWidget);
+
+      await tester.enterText(field('Titel'), 'T');
+      await tester.tap(find.text('Bilder hinzufügen'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(field('Text'), '[img1] [img4]');
+      await tester.tap(find.text('Beitrag senden'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(
+          'Marker ohne passendes Bild: [img4]. Es gibt 1 Bild im Text.',
+        ),
+        findsOne,
+      );
+
+      await tester.enterText(field('Text'), '[img1]');
+      await tester.tap(find.text('Beitrag senden'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(
+          'Bild 1 von 1 konnte nicht hochgeladen werden, daher wurde kein '
+          'Beitrag erstellt.',
+        ),
+        findsOne,
+      );
+    });
+
+    testWidgets('unused images dialog uses plural forms', (tester) async {
+      pickerResults = [
+        [picked('a.jpg'), picked('b.jpg')],
+      ];
+      await pumpScreen(tester, locale: const Locale('de'));
+      await tester.enterText(field('Titel'), 'T');
+      await tester.tap(find.text('Bilder hinzufügen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Beitrag senden'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bilder ohne Marker'), findsOneWidget);
+      expect(
+        find.textContaining('Die Bilder 1, 2 sind nicht im Text platziert.'),
+        findsOne,
+      );
+      await tester.tap(find.text('Abbrechen'));
+      await tester.pumpAndSettle();
+      expect(requests, isEmpty);
+    });
   });
 }

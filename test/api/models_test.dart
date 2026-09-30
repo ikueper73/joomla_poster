@@ -39,14 +39,14 @@ void main() {
   });
 
   group('JoomlaApiException', () {
-    test('toString includes status code when present', () {
+    test('toString names kind, status and detail', () {
       expect(
-        const JoomlaApiException('Not found', statusCode: 404).toString(),
-        'JoomlaApiException (404): Not found',
-      );
-      expect(
-        const JoomlaApiException('No connection').toString(),
-        'JoomlaApiException: No connection',
+        const JoomlaApiException(
+          ApiErrorKind.notFound,
+          statusCode: 404,
+          detail: 'Missing',
+        ).toString(),
+        'JoomlaApiException(notFound, status: 404, detail: Missing)',
       );
     });
   });

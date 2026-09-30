@@ -6,9 +6,12 @@ import 'package:flutter/material.dart';
 import '../api/article_html.dart';
 import '../api/joomla_client.dart';
 import '../api/models.dart';
+import '../l10n/app_localizations.dart';
 import '../services/image_service.dart';
 import '../services/settings_store.dart';
+import 'error_text.dart';
 import 'settings_screen.dart';
+import 'status_message.dart';
 
 /// A local file chosen by the user.
 class PickedFile {
@@ -21,18 +24,22 @@ class PickedFile {
 /// Lets the user choose image files. Injectable for tests.
 typedef ImagePicker = Future<List<PickedFile>> Function({
   required bool multiple,
+  required String dialogTitle,
 });
 
-Future<List<PickedFile>> pickImagesFromDisk({required bool multiple}) async {
+Future<List<PickedFile>> pickImagesFromDisk({
+  required bool multiple,
+  required String dialogTitle,
+}) async {
   final files = multiple
       ? await FilePicker.pickFiles(
-          dialogTitle: 'Choose images',
+          dialogTitle: dialogTitle,
           type: FileType.custom,
           allowedExtensions: ImageService.allowedExtensions,
         )
       : [
           ?await FilePicker.pickFile(
-            dialogTitle: 'Choose intro image',
+            dialogTitle: dialogTitle,
             type: FileType.custom,
             allowedExtensions: ImageService.allowedExtensions,
           ),
@@ -81,9 +88,13 @@ class _ComposeScreenState extends State<ComposeScreen> {
   final _inline = <_ImageEntry>[];
 
   bool _busy = false;
-  String? _progress;
-  String? _successMessage;
-  String? _errorMessage;
+
+  // Built on demand, so they follow a language switch.
+  String Function(AppLocalizations l10n)? _progress;
+  String Function(AppLocalizations l10n)? _successMessage;
+  String Function(AppLocalizations l10n)? _errorMessage;
+
+  AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
   void dispose() {
@@ -108,7 +119,10 @@ class _ComposeScreenState extends State<ComposeScreen> {
   }
 
   Future<void> _pickIntro() async {
-    final files = await widget.pickImages(multiple: false);
+    final files = await widget.pickImages(
+      multiple: false,
+      dialogTitle: _l10n.chooseIntroImage,
+    );
     if (files.isEmpty || !mounted) return;
     setState(() {
       _intro?.alt.dispose();
@@ -117,7 +131,10 @@ class _ComposeScreenState extends State<ComposeScreen> {
   }
 
   Future<void> _pickInline() async {
-    final files = await widget.pickImages(multiple: true);
+    final files = await widget.pickImages(
+      multiple: true,
+      dialogTitle: _l10n.chooseImagesDialogTitle,
+    );
     if (files.isEmpty || !mounted) return;
     setState(() => _inline.addAll(files.map(_ImageEntry.new)));
   }
@@ -138,13 +155,9 @@ class _ComposeScreenState extends State<ComposeScreen> {
         .any((match) => int.parse(match[1]!) >= number);
     if (affected) {
       final confirmed = await _confirm(
-        title: 'Remove image $number?',
-        message:
-            'Your text contains markers for image $number or later. After '
-            'removing it, later images move up one number, so markers like '
-            '[img${number + 1}] will point to a different image. '
-            'Check your markers afterwards.',
-        confirmLabel: 'Remove',
+        title: _l10n.removeImageTitle(number),
+        message: _l10n.removeImageMessage(number, '[img${number + 1}]'),
+        confirmLabel: _l10n.remove,
       );
       if (!confirmed || !mounted) return;
     }
@@ -177,7 +190,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -198,21 +211,21 @@ class _ComposeScreenState extends State<ComposeScreen> {
 
     final check = checkImageMarkers(_body.text, _inline.length);
     if (check.hasUnknownMarkers) {
+      final markers = check.unknownMarkers.map((n) => '[img$n]').join(', ');
+      final count = _inline.length;
       setState(() {
-        _errorMessage =
-            'Your text contains markers without a matching image: '
-            '${check.unknownMarkers.map((n) => '[img$n]').join(', ')}. '
-            'You have ${_inline.length} inline image(s).';
+        _errorMessage = (l10n) => l10n.unknownMarkers(markers, count);
       });
       return;
     }
     if (check.hasUnusedImages) {
       final confirmed = await _confirm(
-        title: 'Images without marker',
-        message:
-            'Image(s) ${check.unusedImages.join(', ')} are not placed in the '
-            'text. They will be added at the end of the article.',
-        confirmLabel: 'Post anyway',
+        title: _l10n.unusedImagesTitle,
+        message: _l10n.unusedImagesMessage(
+          check.unusedImages.length,
+          check.unusedImages.join(', '),
+        ),
+        confirmLabel: _l10n.postAnyway,
       );
       if (!confirmed || !mounted) return;
     }
@@ -224,7 +237,6 @@ class _ComposeScreenState extends State<ComposeScreen> {
       final draft = await _prepareDraft();
       final token = await widget.store.readToken() ?? '';
       client = widget.clientFactory(settings.apiBaseUrl, token);
-      _setProgress('Uploading images…');
       final id = await client.postArticle(
         draft,
         adapter: settings.mediaAdapter!,
@@ -232,23 +244,28 @@ class _ComposeScreenState extends State<ComposeScreen> {
         state: settings.articleState,
         buildArticleHtml: buildArticleHtml,
         onProgress: (uploaded, total) => _setProgress(
-          uploaded < total
-              ? 'Uploading image ${uploaded + 1} of $total…'
-              : 'Creating article…',
+          (l10n) => uploaded < total
+              ? l10n.uploadingImage(uploaded + 1, total)
+              : l10n.creatingArticle,
         ),
       );
-      final idText = id == null ? '' : ' (ID $id)';
-      _successMessage = settings.articleState == ArticleState.published
-          ? 'Article "${draft.title}"$idText was published.'
-          : 'Article "${draft.title}"$idText was created unpublished and '
-                'is waiting for review.';
+      final title = draft.title;
+      final published = settings.articleState == ArticleState.published;
+      _successMessage = (l10n) {
+        final idSuffix = id == null ? '' : l10n.articleIdSuffix(id);
+        return published
+            ? l10n.articlePublished(title, idSuffix)
+            : l10n.articleCreatedUnpublished(title, idSuffix);
+      };
       _clearForm();
+    } on ImageUploadException catch (e) {
+      _errorMessage = (l10n) => errorText(l10n, e);
     } on JoomlaApiException catch (e) {
-      _errorMessage = e.message;
+      _errorMessage = (l10n) => errorText(l10n, e);
     } on ImageProcessingException catch (e) {
-      _errorMessage = e.message;
+      _errorMessage = (l10n) => errorText(l10n, e);
     } on TokenStoreException catch (e) {
-      _errorMessage = e.message;
+      _errorMessage = (l10n) => errorText(l10n, e);
     } finally {
       client?.close();
       if (mounted) {
@@ -268,7 +285,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
     final entries = [?_intro, ..._inline];
     final prepared = <PendingImage>[];
     for (final (i, entry) in entries.indexed) {
-      _setProgress('Preparing image ${i + 1} of ${entries.length}…');
+      _setProgress((l10n) => l10n.preparingImage(i + 1, entries.length));
       prepared.add(
         await widget.imageService.prepare(
           fileName: entry.file.name,
@@ -290,7 +307,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
     );
   }
 
-  void _setProgress(String text) {
+  void _setProgress(String Function(AppLocalizations l10n) text) {
     if (mounted) setState(() => _progress = text);
   }
 
@@ -307,12 +324,13 @@ class _ComposeScreenState extends State<ComposeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New article'),
+        title: Text(l10n.composeTitle),
         actions: [
           IconButton(
-            tooltip: 'Settings',
+            tooltip: l10n.settingsTitle,
             icon: const Icon(Icons.settings),
             onPressed: _busy ? null : _openSettings,
           ),
@@ -321,13 +339,13 @@ class _ComposeScreenState extends State<ComposeScreen> {
       body: ListenableBuilder(
         listenable: widget.store,
         builder: (context, _) => widget.store.isComplete
-            ? _buildForm(context)
+            ? _buildForm(context, l10n)
             : _SetupPrompt(onOpenSettings: _openSettings),
       ),
     );
   }
 
-  Widget _buildForm(BuildContext context) {
+  Widget _buildForm(BuildContext context, AppLocalizations l10n) {
     final theme = Theme.of(context);
     return Center(
       child: ConstrainedBox(
@@ -344,38 +362,38 @@ class _ComposeScreenState extends State<ComposeScreen> {
                 TextFormField(
                   controller: _title,
                   enabled: !_busy,
-                  decoration: const InputDecoration(
-                    labelText: 'Title',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.titleLabel,
+                    border: const OutlineInputBorder(),
                   ),
-                  validator: (value) => (value ?? '').trim().isEmpty
-                      ? 'Please enter a title.'
-                      : null,
+                  validator: (value) =>
+                      (value ?? '').trim().isEmpty ? l10n.titleRequired : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _body,
                   enabled: !_busy,
-                  decoration: const InputDecoration(
-                    labelText: 'Text',
-                    helperText:
-                        'Separate paragraphs with a blank line. Place inline '
-                        'images with markers like [img1].',
+                  decoration: InputDecoration(
+                    labelText: l10n.bodyLabel,
+                    helperText: l10n.bodyHelper,
                     helperMaxLines: 2,
                     alignLabelWithHint: true,
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                   ),
                   minLines: 8,
                   maxLines: null,
                   keyboardType: TextInputType.multiline,
                 ),
                 const SizedBox(height: 24),
-                Text('Intro image', style: theme.textTheme.titleMedium),
+                Text(
+                  l10n.introImageHeading,
+                  style: theme.textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 if (_intro case final intro?)
                   _ImageTile(
                     entry: intro,
-                    label: 'Intro image',
+                    label: l10n.introImageHeading,
                     enabled: !_busy,
                     onRemove: _removeIntro,
                   )
@@ -385,11 +403,14 @@ class _ComposeScreenState extends State<ComposeScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _busy ? null : _pickIntro,
                       icon: const Icon(Icons.image),
-                      label: const Text('Choose intro image'),
+                      label: Text(l10n.chooseIntroImage),
                     ),
                   ),
                 const SizedBox(height: 24),
-                Text('Inline images', style: theme.textTheme.titleMedium),
+                Text(
+                  l10n.inlineImagesHeading,
+                  style: theme.textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 for (final (i, entry) in _inline.indexed)
                   _ImageTile(
@@ -404,7 +425,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
                   child: OutlinedButton.icon(
                     onPressed: _busy ? null : _pickInline,
                     icon: const Icon(Icons.add_photo_alternate),
-                    label: const Text('Add inline images'),
+                    label: Text(l10n.addInlineImages),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -416,20 +437,12 @@ class _ComposeScreenState extends State<ComposeScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.send),
-                  label: Text(_progress ?? 'Post article'),
+                  label: Text(_progress?.call(l10n) ?? l10n.postArticle),
                 ),
-                if (_successMessage != null)
-                  _StatusMessage(
-                    icon: Icons.check_circle,
-                    color: theme.colorScheme.primary,
-                    text: _successMessage!,
-                  ),
-                if (_errorMessage != null)
-                  _StatusMessage(
-                    icon: Icons.error,
-                    color: theme.colorScheme.error,
-                    text: _errorMessage!,
-                  ),
+                if (_successMessage case final message?)
+                  StatusMessage.success(message(l10n)),
+                if (_errorMessage case final message?)
+                  StatusMessage.error(message(l10n)),
               ],
             ),
           ),
@@ -456,6 +469,7 @@ class _ImageTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(8),
@@ -488,10 +502,10 @@ class _ImageTile extends StatelessWidget {
                   TextField(
                     controller: entry.alt,
                     enabled: enabled,
-                    decoration: const InputDecoration(
-                      labelText: 'Alt text (describes the image)',
+                    decoration: InputDecoration(
+                      labelText: l10n.altTextLabel,
                       isDense: true,
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ],
@@ -499,12 +513,12 @@ class _ImageTile extends StatelessWidget {
             ),
             if (onInsertMarker != null)
               IconButton(
-                tooltip: 'Insert $label into text',
+                tooltip: l10n.insertMarkerTooltip(label),
                 icon: const Icon(Icons.input),
                 onPressed: enabled ? onInsertMarker : null,
               ),
             IconButton(
-              tooltip: 'Remove',
+              tooltip: l10n.remove,
               icon: const Icon(Icons.delete_outline),
               onPressed: enabled ? onRemove : null,
             ),
@@ -522,6 +536,7 @@ class _SetupPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -530,45 +545,14 @@ class _SetupPrompt extends StatelessWidget {
           children: [
             const Icon(Icons.settings_ethernet, size: 48),
             const SizedBox(height: 16),
-            const Text(
-              'Connect to your Joomla site first: enter URL, API token and '
-              'category, then test the connection.',
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.setupPrompt, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: onOpenSettings,
-              child: const Text('Open settings'),
+              child: Text(l10n.openSettings),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _StatusMessage extends StatelessWidget {
-  const _StatusMessage({
-    required this.icon,
-    required this.color,
-    required this.text,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 8),
-          Expanded(child: SelectableText(text)),
-        ],
       ),
     );
   }

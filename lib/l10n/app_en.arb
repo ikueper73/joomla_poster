@@ -1,4 +1,227 @@
 {
   "@@locale": "en",
-  "appTitle": "Joomla Poster"
+  "appTitle": "Joomla Poster",
+  "settingsTitle": "Settings",
+  "languageLabel": "Language",
+  "languageSystem": "System language",
+  "siteUrlLabel": "Site URL",
+  "tokenLabel": "API token",
+  "tokenSavedHelper": "A token is saved. Leave empty to keep it.",
+  "tokenRequired": "Please enter the API token.",
+  "categoryIdLabel": "Category ID",
+  "categoryIdHelper": "Shown in the ID column of the category list",
+  "categoryIdRequired": "Please enter the numeric category ID.",
+  "publishImmediately": "Publish immediately",
+  "publishImmediatelyHint": "When off, articles are saved unpublished so an editor can review them on the site.",
+  "testAndSave": "Test connection and save",
+  "connectionOk": "Connection OK. Settings saved.",
+  "connectionOkCategory": "Connection OK: category \"{category}\". Settings saved.",
+  "@connectionOkCategory": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "helpTitle": "Setting up Joomla",
+  "helpText": "• Create a dedicated Joomla user for this app with only the rights to create articles in this category and upload media. Never use a Super User token: anyone who gets the token can do everything that user can.\n• Get the token in that user's profile, tab \"Joomla API Token\".\n• These plugins must be enabled: \"API Authentication - Web Services Joomla Token\", \"User - Joomla API Token\", \"Web Services - Content\" and \"Web Services - Media\".",
+  "urlEmpty": "Please enter the site URL.",
+  "urlNotAbsolute": "Please enter a full URL, e.g. https://example.org",
+  "urlHasExtras": "Please enter only the site address, without login data, \"?\" or \"#\".",
+  "urlNotHttps": "Only https:// URLs are allowed (http://localhost is allowed for development).",
+  "composeTitle": "New article",
+  "titleLabel": "Title",
+  "titleRequired": "Please enter a title.",
+  "bodyLabel": "Text",
+  "bodyHelper": "Separate paragraphs with a blank line. Place inline images with markers like [img1].",
+  "introImageHeading": "Intro image",
+  "chooseIntroImage": "Choose intro image",
+  "inlineImagesHeading": "Inline images",
+  "addInlineImages": "Add inline images",
+  "chooseImagesDialogTitle": "Choose images",
+  "altTextLabel": "Alt text (describes the image)",
+  "insertMarkerTooltip": "Insert {marker} into text",
+  "@insertMarkerTooltip": {
+    "placeholders": {
+      "marker": {
+        "type": "String"
+      }
+    }
+  },
+  "remove": "Remove",
+  "cancel": "Cancel",
+  "postArticle": "Post article",
+  "preparingImage": "Preparing image {current} of {total}…",
+  "@preparingImage": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "uploadingImage": "Uploading image {current} of {total}…",
+  "@uploadingImage": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "creatingArticle": "Creating article…",
+  "articleIdSuffix": " (ID {id})",
+  "@articleIdSuffix": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "articlePublished": "Article \"{title}\"{idSuffix} was published.",
+  "@articlePublished": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "idSuffix": {
+        "type": "String"
+      }
+    }
+  },
+  "articleCreatedUnpublished": "Article \"{title}\"{idSuffix} was created unpublished and is waiting for review.",
+  "@articleCreatedUnpublished": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "idSuffix": {
+        "type": "String"
+      }
+    }
+  },
+  "unknownMarkers": "Your text contains markers without a matching image: {markers}. You have {count, plural, =0{no inline images} =1{1 inline image} other{{count} inline images}}.",
+  "@unknownMarkers": {
+    "placeholders": {
+      "markers": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unusedImagesTitle": "Images without marker",
+  "unusedImagesMessage": "{count, plural, =1{Image {numbers} is not placed in the text. It will be added at the end of the article.} other{Images {numbers} are not placed in the text. They will be added at the end of the article.}}",
+  "@unusedImagesMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "numbers": {
+        "type": "String"
+      }
+    }
+  },
+  "postAnyway": "Post anyway",
+  "removeImageTitle": "Remove image {number}?",
+  "@removeImageTitle": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "removeImageMessage": "Your text contains markers for image {number} or later. After removing it, later images move up one number, so markers like {nextMarker} will point to a different image. Check your markers afterwards.",
+  "@removeImageMessage": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "nextMarker": {
+        "type": "String"
+      }
+    }
+  },
+  "setupPrompt": "Connect to your Joomla site first: enter URL, API token and category, then test the connection.",
+  "openSettings": "Open settings",
+  "errorTimeout": "The site did not respond in time. Please try again.",
+  "errorNetwork": "Could not reach the site.",
+  "errorUnexpectedResponse": "Unexpected response from the site. Is the site URL correct?",
+  "errorNoMediaAdapters": "The site reported no media adapters. Is the \"Web Services - Media\" plugin enabled?",
+  "errorUnauthorized": "Authentication failed. Check the API token.",
+  "errorForbidden": "Permission denied. The token user lacks the required rights.",
+  "errorNotFound": "Not found. Check the site URL and category ID.",
+  "errorConflict": "A file with this name already exists on the server.",
+  "errorTooLarge": "The file is too large for the server.",
+  "errorServer": "The site reported a server error ({status}).",
+  "@errorServer": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "errorRequestFailed": "Request failed ({status}).",
+  "@errorRequestFailed": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "errorWithDetail": "{message} Server said: {detail}",
+  "@errorWithDetail": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "errorImageUpload": "Image {number} of {total} could not be uploaded, so no article was created. {message}",
+  "@errorImageUpload": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "errorImageUnsupported": "\"{fileName}\" is not supported. Please use JPG, PNG or WebP images.",
+  "@errorImageUnsupported": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "errorImageTooLarge": "\"{fileName}\" is too large (over 40 MB).",
+  "@errorImageTooLarge": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "errorImageUnreadable": "\"{fileName}\" could not be read. Is it a valid image?",
+  "@errorImageUnreadable": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "errorKeyring": "Could not access the system keyring to store the API token. On Linux, make sure a keyring service (e.g. GNOME Keyring or KWallet) is running and unlocked."
 }

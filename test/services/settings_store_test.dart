@@ -9,7 +9,7 @@ class FakeTokenStore implements TokenStore {
 
   @override
   Future<String?> read() async {
-    if (broken) throw const TokenStoreException('No keyring');
+    if (broken) throw const TokenStoreException();
     return token;
   }
 
@@ -195,21 +195,22 @@ void main() {
       }
     });
 
-    test('rejects everything else', () {
-      for (final url in [
-        '',
-        '   ',
-        'example.org',
-        'http://example.org',
-        'ftp://example.org',
-        'https://',
-        'https://user:pass@example.org',
-        'https://example.org/?x=1',
-        'https://example.org/#top',
-        'http://localhost.evil.com',
-      ]) {
-        expect(SettingsStore.validateSiteUrl(url), isNotNull, reason: url);
-      }
+    test('rejects everything else with the right reason', () {
+      const cases = {
+        '': SiteUrlError.empty,
+        '   ': SiteUrlError.empty,
+        'example.org': SiteUrlError.notAbsolute,
+        'https://': SiteUrlError.notAbsolute,
+        'http://example.org': SiteUrlError.notHttps,
+        'ftp://example.org': SiteUrlError.notHttps,
+        'http://localhost.evil.com': SiteUrlError.notHttps,
+        'https://user:pass@example.org': SiteUrlError.hasExtras,
+        'https://example.org/?x=1': SiteUrlError.hasExtras,
+        'https://example.org/#top': SiteUrlError.hasExtras,
+      };
+      cases.forEach((url, reason) {
+        expect(SettingsStore.validateSiteUrl(url), reason, reason: url);
+      });
     });
   });
 

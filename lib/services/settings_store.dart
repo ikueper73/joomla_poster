@@ -13,12 +13,24 @@ abstract interface class TokenStore {
 
 /// Thrown when the system keyring cannot be used.
 class TokenStoreException implements Exception {
-  const TokenStoreException(this.message);
-
-  final String message;
+  const TokenStoreException();
 
   @override
-  String toString() => 'TokenStoreException: $message';
+  String toString() => 'TokenStoreException: system keyring unavailable';
+}
+
+/// Why a site URL was rejected by [SettingsStore.validateSiteUrl].
+enum SiteUrlError {
+  empty,
+
+  /// Not a full URL with scheme and host.
+  notAbsolute,
+
+  /// Contains login data, a query or a fragment.
+  hasExtras,
+
+  /// Neither https nor http://localhost.
+  notHttps,
 }
 
 /// Keeps the token in the OS keyring (Windows Credential Manager,
@@ -36,17 +48,13 @@ class SecureTokenStore implements TokenStore {
   Future<void> write(String token) =>
       _guard(() => _storage.write(key: _key, value: token));
 
-  // PlatformException messages come from the OS and never contain the
-  // token, but we still replace them with a fixed, readable message.
+  // PlatformException details come from the OS; the UI shows a fixed,
+  // translated message instead.
   Future<T> _guard<T>(Future<T> Function() action) async {
     try {
       return await action();
     } on PlatformException {
-      throw const TokenStoreException(
-        'Could not access the system keyring to store the API token. '
-        'On Linux, make sure a keyring service (e.g. GNOME Keyring or '
-        'KWallet) is running and unlocked.',
-      );
+      throw const TokenStoreException();
     }
   }
 }
@@ -114,7 +122,7 @@ class SettingsStore extends ChangeNotifier {
   /// stored normalized. Pass [token] only when it changed.
   Future<void> save(JoomlaSettings settings, {String? token}) async {
     final error = validateSiteUrl(settings.siteUrl);
-    if (error != null) throw ArgumentError(error);
+    if (error != null) throw ArgumentError('Invalid site URL: ${error.name}');
     final normalized = settings.copyWith(
       siteUrl: normalizeSiteUrl(settings.siteUrl),
     );
@@ -158,24 +166,20 @@ class SettingsStore extends ChangeNotifier {
   static String normalizeSiteUrl(String input) =>
       input.trim().replaceFirst(RegExp(r'/+$'), '');
 
-  /// Returns an error message, or null if [input] is an allowed site URL:
+  /// Returns why [input] is rejected, or null if it is an allowed site URL:
   /// `https://…`, or `http://localhost` / `http://127.0.0.1` for development.
-  static String? validateSiteUrl(String input) {
+  static SiteUrlError? validateSiteUrl(String input) {
     final text = normalizeSiteUrl(input);
-    if (text.isEmpty) return 'Please enter the site URL.';
+    if (text.isEmpty) return SiteUrlError.empty;
     final uri = Uri.tryParse(text);
-    if (uri == null || uri.host.isEmpty) {
-      return 'Please enter a full URL, e.g. https://example.org';
-    }
+    if (uri == null || uri.host.isEmpty) return SiteUrlError.notAbsolute;
     if (uri.userInfo.isNotEmpty || uri.hasQuery || uri.hasFragment) {
-      return 'Please enter only the site address, without login data, '
-          '"?" or "#".';
+      return SiteUrlError.hasExtras;
     }
     final isLocalhost = uri.host == 'localhost' || uri.host == '127.0.0.1';
     if (uri.scheme == 'https' || (uri.scheme == 'http' && isLocalhost)) {
       return null;
     }
-    return 'Only https:// URLs are allowed '
-        '(http://localhost is allowed for development).';
+    return SiteUrlError.notHttps;
   }
 }
