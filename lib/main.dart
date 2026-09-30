@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'l10n/app_localizations.dart';
 import 'services/settings_store.dart';
 import 'ui/compose_screen.dart';
 
@@ -21,12 +22,25 @@ class JoomlaPosterApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Joomla Poster',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) => MaterialApp(
+        onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        ),
+        // Null follows the system language.
+        locale: switch (store.languageCode) {
+          final code? => Locale(code),
+          null => null,
+        },
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        // English first: Flutter falls back to the first entry when the
+        // system language is not supported. (The generated list is sorted
+        // alphabetically and would start with German.)
+        supportedLocales: const [Locale('en'), Locale('de')],
+        home: ComposeScreen(store: store),
       ),
-      home: ComposeScreen(store: store),
     );
   }
 }

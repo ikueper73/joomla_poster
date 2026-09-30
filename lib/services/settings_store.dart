@@ -63,13 +63,21 @@ class SettingsStore extends ChangeNotifier {
   static const _categoryIdKey = 'category_id';
   static const _articleStateKey = 'article_state';
   static const _mediaAdapterKey = 'media_adapter';
+  static const _languageKey = 'language';
+
+  /// Language codes the UI is translated to.
+  static const supportedLanguages = ['en', 'de'];
 
   JoomlaSettings? _settings;
   bool _hasToken = false;
+  String? _languageCode;
 
   /// Null until a site URL and category ID have been saved.
   JoomlaSettings? get settings => _settings;
   bool get hasToken => _hasToken;
+
+  /// UI language chosen by the user, or null to follow the system.
+  String? get languageCode => _languageCode;
 
   /// True when everything needed for posting is present, including the
   /// media adapter that a successful connection test stores.
@@ -77,6 +85,8 @@ class SettingsStore extends ChangeNotifier {
       _settings != null && _hasToken && _settings!.mediaAdapter != null;
 
   Future<void> load() async {
+    final language = _prefs.getString(_languageKey);
+    _languageCode = supportedLanguages.contains(language) ? language : null;
     final siteUrl = _prefs.getString(_siteUrlKey);
     final categoryId = _prefs.getInt(_categoryIdKey);
     _settings = siteUrl == null || categoryId == null
@@ -123,6 +133,21 @@ class SettingsStore extends ChangeNotifier {
       await _prefs.setString(_mediaAdapterKey, adapter);
     }
     _settings = normalized;
+    notifyListeners();
+  }
+
+  /// Sets the UI language; null follows the system. Saved immediately,
+  /// independent of the connection settings.
+  Future<void> setLanguage(String? languageCode) async {
+    if (languageCode != null && !supportedLanguages.contains(languageCode)) {
+      throw ArgumentError.value(languageCode, 'languageCode');
+    }
+    if (languageCode == null) {
+      await _prefs.remove(_languageKey);
+    } else {
+      await _prefs.setString(_languageKey, languageCode);
+    }
+    _languageCode = languageCode;
     notifyListeners();
   }
 

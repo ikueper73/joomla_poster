@@ -147,6 +147,39 @@ void main() {
     });
   });
 
+  group('language', () {
+    test('defaults to system language', () async {
+      final store = await createStore();
+      expect(store.languageCode, isNull);
+    });
+
+    test('loads a saved language and ignores unknown ones', () async {
+      expect((await createStore({'language': 'de'})).languageCode, 'de');
+      expect((await createStore({'language': 'xx'})).languageCode, isNull);
+    });
+
+    test('setLanguage saves immediately and notifies', () async {
+      final store = await createStore();
+      var notified = 0;
+      store.addListener(() => notified++);
+
+      await store.setLanguage('de');
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('language'), 'de');
+      expect(store.languageCode, 'de');
+
+      await store.setLanguage(null);
+      expect(prefs.containsKey('language'), isFalse);
+      expect(store.languageCode, isNull);
+      expect(notified, 2);
+    });
+
+    test('setLanguage rejects unsupported languages', () async {
+      final store = await createStore();
+      await expectLater(store.setLanguage('fr'), throwsArgumentError);
+    });
+  });
+
   group('validateSiteUrl', () {
     test('accepts https and local development URLs', () {
       for (final url in [
