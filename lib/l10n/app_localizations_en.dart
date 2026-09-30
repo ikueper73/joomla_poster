@@ -96,7 +96,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bodyHelper =>
-      'Separate paragraphs with a blank line. Place inline images with markers like [img1].';
+      'Markdown: ### Heading, **bold**, *italic*, - list, [link](https://…). A line with --- ends the intro text (Read more). Place images with markers like [img1].';
 
   @override
   String get introImageHeading => 'Intro image';

@@ -98,7 +98,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get bodyHelper =>
-      'Absätze durch eine Leerzeile trennen. Bilder im Text mit Markern wie [img1] platzieren.';
+      'Markdown: ### Überschrift, **fett**, *kursiv*, - Liste, [Link](https://…). Eine Zeile mit --- beendet den Einleitungstext („Weiterlesen“). Bilder mit Markern wie [img1] platzieren.';
 
   @override
   String get introImageHeading => 'Einleitungsbild';

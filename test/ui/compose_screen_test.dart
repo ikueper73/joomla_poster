@@ -178,6 +178,25 @@ void main() {
     expect(bodyText(tester), isEmpty);
   });
 
+  testWidgets('Markdown body becomes h3 lead and read-more split', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
+    await tester.enterText(field('Title'), 'Hello');
+    await tester.enterText(
+      field('Text'),
+      '### The lead\n\nIntro with **bold**.\n\n---\n\nThe rest.',
+    );
+    await tapPost(tester);
+
+    final article = jsonDecode(requests.single.body) as Map<String, dynamic>;
+    expect(
+      article['articletext'],
+      '<h3>The lead</h3>\n<p>Intro with <strong>bold</strong>.</p>\n'
+      '<hr id="system-readmore">\n<p>The rest.</p>',
+    );
+  });
+
   testWidgets('uploads intro and inline images, then posts', (tester) async {
     pickerResults = [
       [picked('intro.jpg')],

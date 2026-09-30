@@ -26,7 +26,7 @@
   "titleLabel": "Titel",
   "titleRequired": "Bitte einen Titel eingeben.",
   "bodyLabel": "Text",
-  "bodyHelper": "Absätze durch eine Leerzeile trennen. Bilder im Text mit Markern wie [img1] platzieren.",
+  "bodyHelper": "Markdown: ### Überschrift, **fett**, *kursiv*, - Liste, [Link](https://…). Eine Zeile mit --- beendet den Einleitungstext („Weiterlesen“). Bilder mit Markern wie [img1] platzieren.",
   "introImageHeading": "Einleitungsbild",
   "chooseIntroImage": "Einleitungsbild auswählen",
   "inlineImagesHeading": "Bilder im Text",

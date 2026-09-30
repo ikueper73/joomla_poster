@@ -30,6 +30,7 @@ Out of scope (do not build unless asked):
   - `file_picker` – image selection on all platforms
   - `image` – resize/compress before upload
   - `flutter_localizations` (SDK) + `intl` – UI translations via gen-l10n
+  - `markdown` – parses the body text (we render the HTML ourselves)
 
 ## Joomla Web Services API
 
@@ -78,18 +79,36 @@ a stored adapter.
 - `state: 0` = unpublished (default: an editor reviews on the site).
   Make this a setting, default unpublished.
 - Let Joomla generate the alias; don't send one.
-- Body text: user writes plain text; convert paragraphs to `<p>` and HTML-escape
-  user input. Inline images are inserted as `<img src="images/..." alt="...">`.
+- Body text: user writes Markdown (see below). Inline images are inserted as
+  `<img src="images/..." alt="...">`.
 - The intro image is used for both `image_intro` and `image_fulltext`; its alt
   text goes into `image_intro_alt` / `image_fulltext_alt`.
+
+### Body text (Markdown)
+`lib/api/article_html.dart` parses with the `markdown` package but renders
+the HTML with its own whitelist renderer:
+- Supported: headings (`### Lead` → `<h3>`, the usual intro style), paragraphs,
+  bold, italic, lists, quotes, inline/fenced code, links. A single line break
+  becomes `<br>`.
+- `---` (or `***`) on its own line → Joomla's Read more separator
+  `<hr id="system-readmore">`; Joomla splits intro/full text at it. Only the
+  first one; later ones are plain `<hr>`.
+- Disabled on purpose: raw HTML (block and inline, shown as escaped text),
+  setext headings (`text` + `---` would become `<h2>`), indented code blocks,
+  link reference definitions, Markdown images (reduced to alt text; images
+  must be uploaded through the app).
+- Security: all text is HTML-escaped; only whitelisted tags are emitted; links
+  only for `http`, `https`, `mailto` or relative URLs without a scheme; no
+  attributes except `href` (and `src`/`alt` on uploaded images).
 
 ### Image markers
 The user places inline images with markers `[img1]`, `[img2]`, … in the body
 (`lib/api/article_html.dart`):
 - N is the image's 1-based position in the inline image list.
-- Escape the text first, then replace markers, so user text can never inject
-  HTML. A marker alone in a paragraph gives `<p><img …></p>`; inside a
-  sentence it stays inline. Markers may repeat.
+- Markers are replaced in escaped text nodes during rendering, so user text
+  can never inject HTML. Markers inside code stay literal. A marker alone in
+  a paragraph gives `<p><img …></p>`; inside a sentence (or heading, list,
+  bold text) it stays inline. Markers may repeat.
 - Unknown markers (no such image) block posting with an error.
 - Images without a marker are appended at the end; the UI warns first.
 - Removing an image renumbers later ones; the UI asks for confirmation when
@@ -137,7 +156,7 @@ lib/
   main.dart
   api/joomla_client.dart     # all HTTP calls, no UI code
   api/models.dart
-  api/article_html.dart      # plain text + [imgN] markers → article HTML
+  api/article_html.dart      # Markdown + [imgN] markers → article HTML
   services/image_service.dart
   services/settings_store.dart
   ui/settings_screen.dart

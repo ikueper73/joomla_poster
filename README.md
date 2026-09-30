@@ -37,8 +37,14 @@ meant to replace the Joomla backend.
    immediately (default: off, so an editor reviews them first). Then click
    **Test connection and save**. Settings are only saved when the test
    succeeds.
-2. Write the article. Separate paragraphs with a blank line. Everything is
-   posted as plain text; HTML you type is shown literally, not interpreted.
+2. Write the article in Markdown. Separate paragraphs with a blank line.
+   - `### Lead sentence` → an h3 heading (e.g. for the lead).
+   - `**bold**`, `*italic*`, `- list item`, `1. item`, `> quote`,
+     `[link text](https://…)`.
+   - A line with only `---` is Joomla's **Read more** break: the text above
+     it is the intro text shown in blog views.
+   - HTML you type is shown literally, not interpreted. Markdown images
+     (`![](…)`) are not supported; use the image buttons instead.
 3. **Intro image**: shown in blog and category views, and also used as the
    full-article image.
 4. **Inline images**: add them, then place each one in the text with its

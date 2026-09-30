@@ -257,7 +257,7 @@ abstract class AppLocalizations {
   /// No description provided for @bodyHelper.
   ///
   /// In en, this message translates to:
-  /// **'Separate paragraphs with a blank line. Place inline images with markers like [img1].'**
+  /// **'Markdown: ### Heading, **bold**, *italic*, - list, [link](https://…). A line with --- ends the intro text (Read more). Place images with markers like [img1].'**
   String get bodyHelper;
 
   /// No description provided for @introImageHeading.

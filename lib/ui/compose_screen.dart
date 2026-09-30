@@ -376,7 +376,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
                   decoration: InputDecoration(
                     labelText: l10n.bodyLabel,
                     helperText: l10n.bodyHelper,
-                    helperMaxLines: 2,
+                    helperMaxLines: 3,
                     alignLabelWithHint: true,
                     border: const OutlineInputBorder(),
                   ),
