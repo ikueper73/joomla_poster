@@ -14,9 +14,7 @@ class JoomlaPosterApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
       ),
-      home: const Scaffold(
-        body: Center(child: Text('Joomla Poster')),
-      ),
+      home: const Scaffold(body: Center(child: Text('Joomla Poster'))),
     );
   }
 }
