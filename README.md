@@ -5,6 +5,25 @@ category** of a Joomla 5 site, with an intro image and inline images. It
 uses the Joomla Web Services API. It can't edit or list articles and isn't
 meant to replace the Joomla backend.
 
+## Installation (Linux)
+
+Download the latest files from the
+[Releases page](https://github.com/ikueper73/joomla_poster/releases):
+
+- **Debian, Ubuntu, TUXEDO OS and other derivatives**: the `.deb` file.
+  ```
+  sudo apt install ./joomla-poster_<version>_amd64.deb
+  ```
+  This adds "Joomla Poster" to the application menu and installs the needed
+  libraries. Remove it with `sudo apt remove joomla-poster`.
+- **Other distributions**: the `.tar.gz` file. Unpack it anywhere and start
+  `joomla_poster` inside. Needs GTK 3, libsecret, and zenity or kdialog from
+  your distribution. The folder also contains a `.desktop` file and an icon
+  if you want a menu entry.
+
+`SHA256SUMS` lets you check the download: `sha256sum -c SHA256SUMS
+--ignore-missing`.
+
 ## Joomla setup (once per site)
 
 1. **Enable the plugins** (System → Plugins):
@@ -94,6 +113,31 @@ flutter build linux    # or: flutter build windows
 ```
 
 Project structure and API details are in [CLAUDE.md](CLAUDE.md).
+
+## Publishing a release
+
+Releases are built by GitHub Actions
+([.github/workflows/release.yml](.github/workflows/release.yml)) on Ubuntu
+22.04, so the Linux binary also runs on older distributions.
+
+1. Raise `version:` in `pubspec.yaml` (e.g. `1.1.0+2`) and commit.
+2. Tag that version and push:
+   ```
+   git tag v1.1.0
+   git push origin master v1.1.0
+   ```
+3. The workflow runs analyze and tests, builds the `.deb` and `.tar.gz`, and
+   creates the GitHub release with generated release notes. It fails if the
+   tag doesn't match the pubspec version.
+
+For a test build without a release, run the workflow manually (Actions →
+Release → Run workflow); the packages are attached to the run as an
+artifact. To build the packages locally:
+```
+flutter build linux --release
+packaging/linux/build_packages.sh
+```
+Local builds only run on systems with a glibc at least as new as yours.
 
 ## Known limitations
 

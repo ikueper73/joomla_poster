@@ -1,0 +1,71 @@
+# Builds the Linux packages and publishes a GitHub release.
+#
+# Release:    push a tag matching the pubspec version, e.g.
+#               git tag v1.0.0 && git push origin v1.0.0
+# Test build: run the workflow manually (Actions tab → Release → Run
+#             workflow). It builds the packages and attaches them to the
+#             workflow run as an artifact, without creating a release.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed to create the release
+
+jobs:
+  linux:
+    # Built on the oldest supported Ubuntu so the binary also runs on older
+    # distributions (glibc is backwards- but not forwards-compatible).
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.5
+          cache: true
+
+      - name: Read version from pubspec.yaml
+        id: version
+        run: |
+          version="$(sed -n 's/^version: *\([0-9][0-9.]*\).*/\1/p' pubspec.yaml)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Version: $version"
+
+      - name: Check that the tag matches the version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "v${{ steps.version.outputs.version }}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match pubspec version ${{ steps.version.outputs.version }}"
+            exit 1
+          fi
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build linux --release
+      - run: packaging/linux/build_packages.sh "${{ steps.version.outputs.version }}"
+
+      - name: Upload packages as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: joomla-poster-${{ steps.version.outputs.version }}-linux
+          path: dist/*
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Joomla Poster ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: dist/*

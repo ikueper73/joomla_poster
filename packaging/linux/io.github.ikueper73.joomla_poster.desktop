@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Joomla Poster
+GenericName=Article poster
+GenericName[de]=Beitrags-Poster
+Comment=Post articles with images to a Joomla site
+Comment[de]=Beiträge mit Bildern auf einer Joomla-Website veröffentlichen
+Exec=joomla-poster
+Icon=io.github.ikueper73.joomla_poster
+Terminal=false
+Categories=Office;
+Keywords=Joomla;CMS;Article;Blog;
+StartupWMClass=io.github.ikueper73.joomla_poster

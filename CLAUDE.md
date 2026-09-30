@@ -188,6 +188,18 @@ picker) as constructor parameters so widget tests can inject fakes.
 - `flutter test` — must pass; add tests for every API method
 - `flutter run -d <device>`
 
+## Packaging and releases
+
+- Linux app ID: `io.github.ikueper73.joomla_poster` (`linux/CMakeLists.txt`).
+  Don't change it: the keyring entry for the token is named after it, so a
+  change loses the saved token.
+- `packaging/linux/`: desktop entry, SVG icon, `build_packages.sh` (builds
+  `dist/*.tar.gz`, `dist/*.deb`, `SHA256SUMS` from the release bundle).
+- `.github/workflows/release.yml`: on a `v*` tag matching the pubspec
+  version, builds on Ubuntu 22.04 and publishes a GitHub release. Manual runs
+  only upload artifacts.
+- Don't push, tag or publish releases unless explicitly asked.
+
 ## Working rules
 
 - Test against a mocked HTTP client, never against the live site, unless

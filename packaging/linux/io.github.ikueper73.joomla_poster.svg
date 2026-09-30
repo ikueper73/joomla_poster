@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="#3f51b5"/>
+  <!-- Sheet of paper -->
+  <path d="M36 28h40l16 16v56a4 4 0 0 1-4 4H36a4 4 0 0 1-4-4V32a4 4 0 0 1 4-4z" fill="#ffffff"/>
+  <path d="M76 28v16h16z" fill="#c5cae9"/>
+  <!-- Heading and text lines -->
+  <rect x="42" y="44" width="28" height="7" rx="2" fill="#3f51b5"/>
+  <rect x="42" y="58" width="40" height="4" rx="2" fill="#9fa8da"/>
+  <rect x="42" y="67" width="40" height="4" rx="2" fill="#9fa8da"/>
+  <!-- Image placeholder -->
+  <rect x="42" y="76" width="22" height="18" rx="2" fill="#7986cb"/>
+  <path d="M44 92l6-8 5 5 3-3 5 6z" fill="#ffffff"/>
+  <!-- Upload arrow -->
+  <circle cx="92" cy="92" r="18" fill="#ff7043"/>
+  <path d="M92 81l-9 10h6v10h6V91h6z" fill="#ffffff"/>
+</svg>
