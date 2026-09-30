@@ -25,7 +25,7 @@ jobs:
     # distributions (glibc is backwards- but not forwards-compatible).
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Linux build dependencies
         run: |
@@ -60,7 +60,7 @@ jobs:
       - run: flutter build linux --release
       - run: packaging/linux/build_packages.sh "${{ steps.version.outputs.version }}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux-packages
           path: dist/*
@@ -68,7 +68,7 @@ jobs:
   windows:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
@@ -128,7 +128,7 @@ jobs:
           Compress-Archive -Path "staging\$name" -DestinationPath "dist\$name.zip"
           Get-ChildItem dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-packages
           path: dist/*
@@ -140,7 +140,7 @@ jobs:
     permissions:
       contents: write # needed to create the release
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
@@ -152,7 +152,7 @@ jobs:
           sha256sum -- * > SHA256SUMS
           cat SHA256SUMS
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           name: Joomla Poster ${{ github.ref_name }}
           generate_release_notes: true
