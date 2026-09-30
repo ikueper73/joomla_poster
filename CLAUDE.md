@@ -193,8 +193,15 @@ picker) as constructor parameters so widget tests can inject fakes.
 - Linux app ID: `io.github.ikueper73.joomla_poster` (`linux/CMakeLists.txt`).
   Don't change it: the keyring entry for the token is named after it, so a
   change loses the saved token.
-- `packaging/linux/`: desktop entry, SVG icon, `build_packages.sh` (builds
-  `dist/*.tar.gz`, `dist/*.deb`, `SHA256SUMS` from the release bundle).
+- License: GPL-3.0-or-later, © Ingo Kueper. `LICENSE` is the unmodified
+  GPLv3 text (keeps GitHub's license detection working); the copyright line
+  lives in README, metainfo, `packaging/linux/copyright` and the About dialog.
+- `packaging/linux/`: desktop entry, SVG icon, AppStream metainfo (developer,
+  license, description for GNOME Software / KDE Discover), Debian copyright
+  file, `build_packages.sh` (builds `dist/*.tar.gz`, `dist/*.deb`,
+  `SHA256SUMS` from the release bundle).
+- Every release needs a `<release>` entry in the metainfo; the script fails
+  without it. Validate with `appstreamcli validate --no-net <file>`.
 - `.github/workflows/release.yml`: on a `v*` tag matching the pubspec
   version, builds on Ubuntu 22.04 and publishes a GitHub release. Manual runs
   only upload artifacts.

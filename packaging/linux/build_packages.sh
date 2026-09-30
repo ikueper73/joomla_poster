@@ -26,6 +26,12 @@ if [[ -z "$VERSION" ]]; then
   echo "Could not determine the version." >&2
   exit 1
 fi
+metainfo="packaging/linux/$APP_ID.metainfo.xml"
+if ! grep -q "<release version=\"$VERSION\"" "$metainfo"; then
+  echo "Version $VERSION has no <release> entry in $metainfo." >&2
+  echo "Add one (newest first) before building the packages." >&2
+  exit 1
+fi
 if [[ ! -x "$BUNDLE/$BINARY" ]]; then
   echo "No release build found. Run: flutter build linux --release" >&2
   exit 1
@@ -39,8 +45,8 @@ trap 'rm -rf "$staging"' EXIT
 # --- tar.gz -----------------------------------------------------------------
 tar_dir="$PACKAGE-$VERSION-linux-x64"
 cp -r "$BUNDLE" "$staging/$tar_dir"
-# Desktop entry and icon, for users who want to add a menu entry themselves.
-cp "packaging/linux/$APP_ID.desktop" "packaging/linux/$APP_ID.svg" \
+# License, plus desktop entry and icon for users who want a menu entry.
+cp LICENSE "packaging/linux/$APP_ID.desktop" "packaging/linux/$APP_ID.svg" \
   "$staging/$tar_dir/"
 tar -C "$staging" -czf "$DIST/$tar_dir.tar.gz" "$tar_dir"
 
@@ -48,7 +54,8 @@ tar -C "$staging" -czf "$DIST/$tar_dir.tar.gz" "$tar_dir"
 root="$staging/deb"
 install -d "$root/DEBIAN" "$root/opt/$PACKAGE" "$root/usr/bin" \
   "$root/usr/share/applications" \
-  "$root/usr/share/icons/hicolor/scalable/apps"
+  "$root/usr/share/icons/hicolor/scalable/apps" \
+  "$root/usr/share/metainfo" "$root/usr/share/doc/$PACKAGE"
 cp -r "$BUNDLE/." "$root/opt/$PACKAGE/"
 chmod -R u=rwX,go=rX "$root/opt/$PACKAGE"
 chmod 755 "$root/opt/$PACKAGE/$BINARY"
@@ -58,6 +65,9 @@ ln -s "/opt/$PACKAGE/$BINARY" "$root/usr/bin/$PACKAGE"
 install -m 644 "packaging/linux/$APP_ID.desktop" "$root/usr/share/applications/"
 install -m 644 "packaging/linux/$APP_ID.svg" \
   "$root/usr/share/icons/hicolor/scalable/apps/"
+# AppStream metadata: developer, license and description in software centers.
+install -m 644 "$metainfo" "$root/usr/share/metainfo/"
+install -m 644 packaging/linux/copyright "$root/usr/share/doc/$PACKAGE/"
 
 installed_size="$(du -sk --exclude=DEBIAN "$root" | cut -f1)"
 cat > "$root/DEBIAN/control" <<EOF

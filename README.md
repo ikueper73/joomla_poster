@@ -120,7 +120,11 @@ Releases are built by GitHub Actions
 ([.github/workflows/release.yml](.github/workflows/release.yml)) on Ubuntu
 22.04, so the Linux binary also runs on older distributions.
 
-1. Raise `version:` in `pubspec.yaml` (e.g. `1.1.0+2`) and commit.
+1. Raise `version:` in `pubspec.yaml` (e.g. `1.1.0+2`) and add a matching
+   entry at the top of `<releases>` in
+   `packaging/linux/io.github.ikueper73.joomla_poster.metainfo.xml`
+   (e.g. `<release version="1.1.0" date="2026-11-15"/>`). Commit both; the
+   build fails if the metainfo entry is missing.
 2. Tag that version and push:
    ```
    git tag v1.1.0
@@ -150,3 +154,16 @@ Local builds only run on systems with a glibc at least as new as yours.
 - Not yet verified against a live site: the exact response format of
   `GET /media/adapters`, and whether Joomla creates the
   `articles/<year>/` folder automatically on the first upload of a year.
+
+## License
+
+Copyright © 2026 Ingo Kueper
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version. See [LICENSE](LICENSE).
+
+The app bundles the Flutter engine and Dart packages under their own
+licenses (BSD-3-Clause, MIT and others); they are listed in the app under
+Settings → About → View licenses.

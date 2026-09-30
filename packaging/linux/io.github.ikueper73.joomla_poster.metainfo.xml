@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata: read by GNOME Software, KDE Discover and others. -->
+<component type="desktop-application">
+  <id>io.github.ikueper73.joomla_poster</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <name>Joomla Poster</name>
+  <summary>Post articles with images to a Joomla site</summary>
+  <summary xml:lang="de">Beiträge mit Bildern auf einer Joomla-Website veröffentlichen</summary>
+
+  <developer id="io.github.ikueper73">
+    <name>Ingo Kueper</name>
+  </developer>
+
+  <description>
+    <p>
+      A small desktop app that creates new articles in one fixed category of
+      a Joomla 5 site, using the Joomla Web Services API.
+    </p>
+    <p xml:lang="de">
+      Eine kleine Desktop-App, die über die Joomla-Webdienste-API neue
+      Beiträge in einer festen Kategorie einer Joomla-5-Website anlegt.
+    </p>
+    <ul>
+      <li>Write the article in Markdown, including headings and a Read more break</li>
+      <li xml:lang="de">Beiträge in Markdown schreiben, mit Überschriften und Weiterlesen-Trenner</li>
+      <li>Add an intro image and inline images</li>
+      <li xml:lang="de">Einleitungsbild und Bilder im Text hinzufügen</li>
+      <li>Images are resized and their EXIF data (including GPS location) is removed</li>
+      <li xml:lang="de">Bilder werden verkleinert, EXIF-Daten (auch GPS-Position) werden entfernt</li>
+      <li>New articles can be saved unpublished for review</li>
+      <li xml:lang="de">Neue Beiträge können unveröffentlicht zur Prüfung gespeichert werden</li>
+      <li>The API token is stored in the system keyring</li>
+      <li xml:lang="de">Der API-Token liegt im Schlüsselbund des Systems</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">io.github.ikueper73.joomla_poster.desktop</launchable>
+  <provides>
+    <binary>joomla-poster</binary>
+  </provides>
+
+  <url type="homepage">https://github.com/ikueper73/joomla_poster</url>
+  <url type="bugtracker">https://github.com/ikueper73/joomla_poster/issues</url>
+  <url type="vcs-browser">https://github.com/ikueper73/joomla_poster</url>
+
+  <categories>
+    <category>Office</category>
+  </categories>
+  <keywords>
+    <keyword>Joomla</keyword>
+    <keyword>CMS</keyword>
+    <keyword>Article</keyword>
+    <keyword>Blog</keyword>
+  </keywords>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <content_rating type="oars-1.1"/>
+
+  <!-- Add a <release> entry for every new version (newest first). The
+       packaging script refuses to build a version that is missing here. -->
+  <releases>
+    <release version="1.0.0" date="2026-10-01"/>
+  </releases>
+</component>

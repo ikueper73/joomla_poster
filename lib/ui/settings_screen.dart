@@ -208,6 +208,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     StatusMessage.error(message(l10n)),
                   const SizedBox(height: 24),
                   const _HelpCard(),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.info_outline),
+                      label: Text(l10n.aboutTitle),
+                      // Includes "View licenses" for the bundled packages,
+                      // which their BSD/MIT licenses require us to show.
+                      onPressed: () => showAboutDialog(
+                        context: context,
+                        applicationName: l10n.appTitle,
+                        applicationLegalese: l10n.aboutLegalese,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

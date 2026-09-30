@@ -67,5 +67,7 @@
   "errorImageUnsupported": "„{fileName}“ wird nicht unterstützt. Bitte JPG-, PNG- oder WebP-Bilder verwenden.",
   "errorImageTooLarge": "„{fileName}“ ist zu groß (über 40 MB).",
   "errorImageUnreadable": "„{fileName}“ konnte nicht gelesen werden. Ist es ein gültiges Bild?",
-  "errorKeyring": "Kein Zugriff auf den Schlüsselbund des Systems, um den API-Token zu speichern. Unter Linux muss ein Schlüsselbund-Dienst (z. B. GNOME Keyring oder KWallet) laufen und entsperrt sein."
+  "errorKeyring": "Kein Zugriff auf den Schlüsselbund des Systems, um den API-Token zu speichern. Unter Linux muss ein Schlüsselbund-Dienst (z. B. GNOME Keyring oder KWallet) laufen und entsperrt sein.",
+  "aboutTitle": "Über Joomla Poster",
+  "aboutLegalese": "© 2026 Ingo Kueper\nLizenziert unter der GNU General Public License, Version 3 oder neuer.\nQuellcode: https://github.com/ikueper73/joomla_poster"
 }

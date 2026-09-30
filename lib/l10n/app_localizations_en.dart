@@ -276,4 +276,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorKeyring =>
       'Could not access the system keyring to store the API token. On Linux, make sure a keyring service (e.g. GNOME Keyring or KWallet) is running and unlocked.';
+
+  @override
+  String get aboutTitle => 'About Joomla Poster';
+
+  @override
+  String get aboutLegalese =>
+      '© 2026 Ingo Kueper\nLicensed under the GNU General Public License, version 3 or later.\nSource code: https://github.com/ikueper73/joomla_poster';
 }

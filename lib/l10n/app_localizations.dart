@@ -505,6 +505,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not access the system keyring to store the API token. On Linux, make sure a keyring service (e.g. GNOME Keyring or KWallet) is running and unlocked.'**
   String get errorKeyring;
+
+  /// No description provided for @aboutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About Joomla Poster'**
+  String get aboutTitle;
+
+  /// No description provided for @aboutLegalese.
+  ///
+  /// In en, this message translates to:
+  /// **'© 2026 Ingo Kueper\nLicensed under the GNU General Public License, version 3 or later.\nSource code: https://github.com/ikueper73/joomla_poster'**
+  String get aboutLegalese;
 }
 
 class _AppLocalizationsDelegate

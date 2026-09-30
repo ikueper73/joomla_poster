@@ -280,4 +280,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get errorKeyring =>
       'Kein Zugriff auf den Schlüsselbund des Systems, um den API-Token zu speichern. Unter Linux muss ein Schlüsselbund-Dienst (z. B. GNOME Keyring oder KWallet) laufen und entsperrt sein.';
+
+  @override
+  String get aboutTitle => 'Über Joomla Poster';
+
+  @override
+  String get aboutLegalese =>
+      '© 2026 Ingo Kueper\nLizenziert unter der GNU General Public License, Version 3 oder neuer.\nQuellcode: https://github.com/ikueper73/joomla_poster';
 }

@@ -241,4 +241,15 @@ void main() {
     );
     expect(find.textContaining('Meldung des Servers: Forbidden'), findsOne);
   });
+
+  testWidgets('about dialog shows author and license', (tester) async {
+    await pumpScreen(tester);
+    await tester.ensureVisible(find.text('About Joomla Poster'));
+    await tester.tap(find.text('About Joomla Poster'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('© 2026 Ingo Kueper'), findsOneWidget);
+    expect(find.textContaining('version 3 or later'), findsOneWidget);
+    expect(find.text('View licenses'), findsOneWidget);
+  });
 }
