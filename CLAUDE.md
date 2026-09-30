@@ -41,7 +41,9 @@ Headers on every request:
 
 ### Verify settings
 `GET /content/categories/{catid}` → 200 means the URL, token, and category
-are valid. Use it for a "Test connection" button.
+are valid. Use it for a "Test connection" button. Settings are only saved
+after a successful test (together with the media adapter); posting requires
+a stored adapter.
 
 ### Upload an image
 `POST /media/files`
@@ -76,6 +78,20 @@ are valid. Use it for a "Test connection" button.
 - Let Joomla generate the alias; don't send one.
 - Body text: user writes plain text; convert paragraphs to `<p>` and HTML-escape
   user input. Inline images are inserted as `<img src="images/..." alt="...">`.
+- The intro image is used for both `image_intro` and `image_fulltext`; its alt
+  text goes into `image_intro_alt` / `image_fulltext_alt`.
+
+### Image markers
+The user places inline images with markers `[img1]`, `[img2]`, … in the body
+(`lib/api/article_html.dart`):
+- N is the image's 1-based position in the inline image list.
+- Escape the text first, then replace markers, so user text can never inject
+  HTML. A marker alone in a paragraph gives `<p><img …></p>`; inside a
+  sentence it stays inline. Markers may repeat.
+- Unknown markers (no such image) block posting with an error.
+- Images without a marker are appended at the end; the UI warns first.
+- Removing an image renumbers later ones; the UI asks for confirmation when
+  existing markers would be affected.
 
 ### Order of operations
 1. Upload all images; collect their paths.
@@ -98,13 +114,24 @@ lib/
   main.dart
   api/joomla_client.dart     # all HTTP calls, no UI code
   api/models.dart
+  api/article_html.dart      # plain text + [imgN] markers → article HTML
   services/image_service.dart
   services/settings_store.dart
   ui/settings_screen.dart
   ui/compose_screen.dart
 test/
+  app_test.dart
   api/joomla_client_test.dart   # uses MockClient from package:http/testing
+  api/article_html_test.dart
+  api/models_test.dart
+  services/image_service_test.dart
+  services/settings_store_test.dart
+  ui/settings_screen_test.dart  # widget tests with MockClient-based clients
+  ui/compose_screen_test.dart   # fake image service + file picker
 ```
+
+UI screens take their dependencies (client factory, image service, file
+picker) as constructor parameters so widget tests can inject fakes.
 
 ## Commands
 
