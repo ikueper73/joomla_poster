@@ -15,12 +15,14 @@ class JoomlaClient {
     required this._token,
     http.Client? httpClient,
     this.timeout = const Duration(seconds: 30),
+    this.uploadTimeout = const Duration(minutes: 2),
   }) : _http = httpClient ?? http.Client();
 
   final String _apiBaseUrl;
   final String _token;
   final http.Client _http;
   final Duration timeout;
+  final Duration uploadTimeout;
 
   static const _maxMessageLength = 300;
 
@@ -55,6 +57,87 @@ class JoomlaClient {
     return id;
   }
 
+  /// Uploads one image via the media adapter [adapter] (e.g.
+  /// `local-images`) and returns its public path under `images/`.
+  Future<UploadedImage> uploadImage(String adapter, PendingImage image) async {
+    await _post('/media/files', {
+      'path': '$adapter:/${image.relativePath}',
+      'content': base64Encode(image.bytes),
+    }, timeout: uploadTimeout);
+    return UploadedImage(path: 'images/${image.relativePath}', alt: image.alt);
+  }
+
+  /// Creates the article and returns its id (null if the response has none).
+  /// Joomla generates the alias, so none is sent.
+  Future<int?> createArticle({
+    required String title,
+    required String articleHtml,
+    required int categoryId,
+    required ArticleState state,
+    UploadedImage? introImage,
+  }) async {
+    final json = await _post('/content/articles', {
+      'title': title,
+      'catid': categoryId,
+      'articletext': articleHtml,
+      'state': state.value,
+      'language': '*',
+      if (introImage != null)
+        'images': {
+          'image_intro': introImage.path,
+          'image_intro_alt': introImage.alt,
+          'image_fulltext': introImage.path,
+          'image_fulltext_alt': introImage.alt,
+        },
+    });
+    final data = json['data'];
+    return data is Map ? int.tryParse('${data['id']}') : null;
+  }
+
+  /// Uploads all images of [draft] in order, then creates the article.
+  /// If any upload fails, stops and throws; the article is not created.
+  ///
+  /// [buildArticleHtml] turns the plain-text body plus the uploaded inline
+  /// images into the article HTML. [onProgress] is called with the number
+  /// of uploaded images so far (starting at 0) and the total.
+  Future<int?> postArticle(
+    ArticleDraft draft, {
+    required String adapter,
+    required int categoryId,
+    required ArticleState state,
+    required String Function(String body, List<UploadedImage> inlineImages)
+    buildArticleHtml,
+    void Function(int uploaded, int total)? onProgress,
+  }) async {
+    final pending = [?draft.introImage, ...draft.inlineImages];
+    final uploaded = <UploadedImage>[];
+    onProgress?.call(0, pending.length);
+    for (final image in pending) {
+      try {
+        uploaded.add(await uploadImage(adapter, image));
+      } on JoomlaApiException catch (e) {
+        throw JoomlaApiException(
+          'Image ${uploaded.length + 1} of ${pending.length} could not be '
+          'uploaded, so no article was created. ${e.message}',
+          statusCode: e.statusCode,
+        );
+      }
+      onProgress?.call(uploaded.length, pending.length);
+    }
+
+    final introImage = draft.introImage == null ? null : uploaded.first;
+    final inlineImages = draft.introImage == null
+        ? uploaded
+        : uploaded.sublist(1);
+    return createArticle(
+      title: draft.title,
+      articleHtml: buildArticleHtml(draft.body, inlineImages),
+      categoryId: categoryId,
+      state: state,
+      introImage: introImage,
+    );
+  }
+
   void close() => _http.close();
 
   Map<String, String> get _headers => {
@@ -65,6 +148,22 @@ class JoomlaClient {
   Future<Map<String, dynamic>> _get(String path) {
     return _send(
       () => _http.get(Uri.parse('$_apiBaseUrl$path'), headers: _headers),
+      timeout,
+    );
+  }
+
+  Future<Map<String, dynamic>> _post(
+    String path,
+    Map<String, dynamic> body, {
+    Duration? timeout,
+  }) {
+    return _send(
+      () => _http.post(
+        Uri.parse('$_apiBaseUrl$path'),
+        headers: {..._headers, 'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ),
+      timeout ?? this.timeout,
     );
   }
 
@@ -72,6 +171,7 @@ class JoomlaClient {
   /// [JoomlaApiException] and returns the decoded JSON body.
   Future<Map<String, dynamic>> _send(
     Future<http.Response> Function() request,
+    Duration timeout,
   ) async {
     final http.Response response;
     try {
@@ -106,6 +206,7 @@ class JoomlaClient {
       401 => 'Authentication failed. Check the API token.',
       403 => 'Permission denied. The token user lacks the required rights.',
       404 => 'Not found. Check the site URL and category ID.',
+      409 => 'A file with this name already exists on the server.',
       413 => 'The file is too large for the server.',
       >= 500 => 'The site reported a server error ($status).',
       _ => 'Request failed ($status).',

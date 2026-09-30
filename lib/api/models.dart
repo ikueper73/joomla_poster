@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 /// Publish state of a newly created article, as Joomla's `state` field.
 enum ArticleState {
   unpublished(0),
@@ -54,6 +56,25 @@ class JoomlaSettings {
       'articleState: ${articleState.name}, mediaAdapter: $mediaAdapter)';
 }
 
+/// A processed image that is ready to upload, but not uploaded yet.
+class PendingImage {
+  const PendingImage({
+    required this.relativePath,
+    required this.bytes,
+    this.alt = '',
+  });
+
+  /// Path inside the images folder, e.g. `articles/2026/my-title-1.jpg`.
+  final String relativePath;
+
+  /// Final JPEG bytes (resized, EXIF stripped).
+  final Uint8List bytes;
+  final String alt;
+
+  @override
+  String toString() => 'PendingImage($relativePath, ${bytes.length} bytes)';
+}
+
 /// An image that is already on the server.
 class UploadedImage {
   const UploadedImage({required this.path, this.alt = ''});
@@ -67,7 +88,7 @@ class UploadedImage {
   String toString() => 'UploadedImage($path)';
 }
 
-/// Everything needed to create an article once all images are uploaded.
+/// What the user wants to post: text plus images that still need uploading.
 class ArticleDraft {
   const ArticleDraft({
     required this.title,
@@ -80,10 +101,10 @@ class ArticleDraft {
 
   /// Plain text as typed by the user, may contain `[imgN]` markers.
   final String body;
-  final UploadedImage? introImage;
+  final PendingImage? introImage;
 
   /// Inline images; `[img1]` refers to the first entry.
-  final List<UploadedImage> inlineImages;
+  final List<PendingImage> inlineImages;
 }
 
 /// An error from the Joomla API or the network. [message] is already
