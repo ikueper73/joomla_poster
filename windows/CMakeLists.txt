@@ -106,3 +106,16 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+# Ship the Microsoft Visual C++ runtime DLLs (msvcp140.dll, vcruntime140.dll,
+# vcruntime140_1.dll) next to the exe ("app-local" deployment), so the app
+# also starts on PCs without the VC++ Redistributable installed.
+set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
+set(CMAKE_INSTALL_UCRT_LIBRARIES FALSE) # part of Windows 10 and later
+include(InstallRequiredSystemLibraries)
+if(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+  install(PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}
+    DESTINATION "${CMAKE_INSTALL_PREFIX}"
+    CONFIGURATIONS Profile;Release
+    COMPONENT Runtime)
+endif()

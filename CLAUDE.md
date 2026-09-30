@@ -200,11 +200,18 @@ picker) as constructor parameters so widget tests can inject fakes.
   license, description for GNOME Software / KDE Discover), Debian copyright
   file, `build_packages.sh` (builds `dist/*.tar.gz`, `dist/*.deb`,
   `SHA256SUMS` from the release bundle).
+- `packaging/windows/installer.iss`: Inno Setup installer (per-user, no
+  admin). Its `AppId` GUID must never change (Windows uses it for updates).
+  `windows/CMakeLists.txt` bundles the VC++ runtime DLLs next to the exe;
+  `windows/runner/Runner.rc` holds publisher and copyright; the icon is
+  `windows/runner/resources/app_icon.ico` (rendered from the SVG).
 - Every release needs a `<release>` entry in the metainfo; the script fails
   without it. Validate with `appstreamcli validate --no-net <file>`.
 - `.github/workflows/release.yml`: on a `v*` tag matching the pubspec
-  version, builds on Ubuntu 22.04 and publishes a GitHub release. Manual runs
-  only upload artifacts.
+  version, builds Linux (Ubuntu 22.04) and Windows (windows-2022) packages,
+  then one job publishes the GitHub release with all files and a combined
+  `SHA256SUMS`. Manual runs only upload artifacts. Windows builds can't be
+  tested locally on Linux; use a manual workflow run.
 - Don't push, tag or publish releases unless explicitly asked.
 
 ## Working rules

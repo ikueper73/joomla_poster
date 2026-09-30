@@ -5,7 +5,23 @@ category** of a Joomla 5 site, with an intro image and inline images. It
 uses the Joomla Web Services API. It can't edit or list articles and isn't
 meant to replace the Joomla backend.
 
-## Installation (Linux)
+## Installation
+
+### Windows
+
+Download from the
+[Releases page](https://github.com/ikueper73/joomla_poster/releases):
+
+- **`…-windows-x64-setup.exe`** (recommended): installs Joomla Poster for
+  your user without admin rights, with a start menu entry and an uninstall
+  entry in the Windows settings.
+- **`…-windows-x64.zip`**: unpack anywhere and start `joomla_poster.exe`.
+
+The app is not code-signed yet, so Windows SmartScreen may show "Windows
+protected your PC". Click **More info → Run anyway**. You can compare the
+file with `SHA256SUMS` first (`Get-FileHash <file>` in PowerShell).
+
+### Linux
 
 Download the latest files from the
 [Releases page](https://github.com/ikueper73/joomla_poster/releases):
@@ -98,9 +114,15 @@ Images are stored in `images/articles/<year>/` on the site.
 
 ### Windows
 
-- No extra runtime setup; the token goes into the Credential Manager.
-- To build: Visual Studio with the "Desktop development with C++" workload.
-  Windows builds must be made on Windows.
+- Windows 10 or 11, 64-bit. The token goes into the Credential Manager.
+  The Visual C++ runtime DLLs are shipped with the app.
+- To build: Visual Studio 2022 with the "Desktop development with C++"
+  workload. Windows builds must be made on Windows (or by the GitHub
+  workflow). For the installer, [Inno Setup 6](https://jrsoftware.org/isinfo.php):
+  ```
+  flutter build windows --release
+  iscc /DAppVersion=1.0.0 packaging\windows\installer.iss
+  ```
 
 ## Development
 
@@ -130,8 +152,10 @@ Releases are built by GitHub Actions
    git tag v1.1.0
    git push origin master v1.1.0
    ```
-3. The workflow runs analyze and tests, builds the `.deb` and `.tar.gz`, and
-   creates the GitHub release with generated release notes. It fails if the
+3. The workflow runs analyze and tests, builds the Linux `.deb` and
+   `.tar.gz` (on Ubuntu 22.04) and the Windows installer and `.zip` (on
+   Windows Server 2022), and creates the GitHub release with all files,
+   `SHA256SUMS` and generated release notes. It fails if the
    tag doesn't match the pubspec version.
 
 For a test build without a release, run the workflow manually (Actions →
